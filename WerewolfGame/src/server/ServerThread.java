@@ -12,8 +12,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,15 +25,13 @@ import org.json.JSONObject;
  */
 public class ServerThread implements Runnable {
     private Socket clientSocket;
-    private ArrayList<Socket> clientSockets;
     private DataOutputStream out;
     private DataInputStream in;
     private ArrayList<Player> players;
     private Player player;
     
-    public ServerThread(Socket clientSocket, ArrayList<Socket> clientSockets, ArrayList<Player> players) {
+    public ServerThread(Socket clientSocket, ArrayList<Player> players) {
         this.clientSocket = clientSocket;
-        this.clientSockets = clientSockets;
         this.players = players;
         try {
             out = new DataOutputStream(clientSocket.getOutputStream());
@@ -50,7 +50,14 @@ public class ServerThread implements Runnable {
                 requestHandler(request);
             }
         } catch (IOException ex) {
-            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            if (player != null) {
+                System.out.println(player.getUsername() + " has been disconnected");
+                players.remove(player);
+                player = null;
+                if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
+                    startGame();
+                }
+            }
         }   
     }
     
@@ -81,20 +88,25 @@ public class ServerThread implements Runnable {
     private void joinHandler(String username) {
         boolean exist = isPlayerExist(username);
         JSONObject response = new JSONObject();
-        if (exist) {
+        if (Server.isGameStarted()) {
             response.put("status", "fail");
-            response.put("description", "user exists");
+            response.put("description", "please wait, game is currently running");
         } else {
-            int id = Server.getCurrentIdPlayer();
-            String addr = clientSocket.getInetAddress().getHostAddress();
-            int port = clientSocket.getPort();
-            player = new Player(id, addr, port, username);
-            System.out.println(player);
-            Server.incrCurrentIdPlayer();
-            players.add(player);
-            System.out.println(username + " has joined.");
-            response.put("status", "ok");
-            response.put("player_id", id);
+            if (exist) {
+                response.put("status", "fail");
+                response.put("description", "user exists");
+            } else {
+                int id = Server.getCurrentIdPlayer();
+                String addr = clientSocket.getInetAddress().getHostAddress();
+                int port = clientSocket.getPort();
+                player = new Player(id, addr, port, username, clientSocket);
+                System.out.println(player);
+                Server.incrCurrentIdPlayer();
+                players.add(player);
+                System.out.println(username + " has joined.");
+                response.put("status", "ok");
+                response.put("player_id", id);
+            }
         }
         send(response.toString());
     }
@@ -121,14 +133,77 @@ public class ServerThread implements Runnable {
             response.put("status", "ok");
         }
         send(response.toString());
+        if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
+            startGame();
+        }
     }
     
     private void readyUpHandler() {
-        System.out.println("readyup");
+        JSONObject response = new JSONObject();
+        if(player == null) {
+            response.put("status", "fail");
+            response.put("description", "You haven't join the game");
+        } else {
+            Server.incrNumberPlayerReadied();
+            response.put("status", "ok");
+            response.put("description", "waiting for other player to start");
+        }
+        send(response.toString());
+        if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
+            startGame();
+        }
+    }
+    
+    private void startGame() {
+        Random random = new Random();
+        int firstWolf = 0 + (int)(Math.random() * players.size()); 
+        int secondWolf = 0 + (int)(Math.random() * players.size());
+        while (secondWolf == firstWolf) {
+            secondWolf = 0 + (int)(Math.random() * players.size());
+        }
+        for(int i=0; i<players.size(); i++) {
+            JSONObject response = new JSONObject();
+            response.put("method", "start");
+            response.put("time", "day");
+            if(i != firstWolf && i != secondWolf) {
+                response.put("role", "civilian");
+                response.put("friend", "");
+            } else {
+                response.put("role", "werewolf");
+                JSONArray arr = new JSONArray();
+                arr.put(players.get(firstWolf).getUsername());
+                arr.put(players.get(secondWolf).getUsername());
+                response.put("friend", arr);
+            }
+            response.put("description", "game has started");
+            send(players.get(i).getSocket(), response.toString());
+        }
     }
     
     private void listClientHandler() {
-        System.out.println("list client");
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        JSONArray arr = new JSONArray();
+        for(Player p : players) {
+            JSONObject obj = new JSONObject();
+            obj.put("player_id", p.getPlayerId());
+            obj.put("is_alive", p.getAlive());
+            obj.put("address", p.getAddress());
+            obj.put("port", p.getPort());
+            obj.put("username", p.getUsername());
+            arr.put(obj);
+        }
+        response.put("clients", arr);
+        send(response.toString());
+    }
+    
+    private void send(Socket socket, String msg) {
+        try {
+            DataOutputStream os = new DataOutputStream(socket.getOutputStream());
+            os.writeUTF(msg);
+        } catch (IOException ex) {
+            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private void send(String msg) {
@@ -136,6 +211,17 @@ public class ServerThread implements Runnable {
             out.writeUTF(msg);
         } catch (IOException ex) {
             Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void gameOver(String winner) {
+        Server.changeGameStarted(false);
+        for(Player p : players) {
+            JSONObject response = new JSONObject();
+            response.put("method", "game_over");
+            response.put("winner", winner);
+            response.put("description", "game has been won by " + winner);
+            send(p.getSocket(), response.toString());
         }
     }
 }

@@ -5,6 +5,8 @@
  */
 package server;
 
+import java.net.Socket;
+
 /**
  *
  * @author William Sentosa
@@ -15,6 +17,7 @@ public class Player {
     private String address;
     private int port;
     private String username;
+    private Socket socket;
     
     public Player() {
         playerId = -1;
@@ -24,11 +27,16 @@ public class Player {
         username = "";
     }
     
-    public Player(int playerId, String address, int port, String username) {
+    public Player(int playerId, String address, int port, String username, Socket socket) {
         this.playerId = playerId;
         this.address = address;
         this.port = port;
         this.username = username;
+        this.socket = socket;
+    }
+    
+    public Socket getSocket() {
+        return socket;
     }
     
     public int getPlayerId() {
@@ -61,6 +69,10 @@ public class Player {
     
     public void setNotAlive() {
         isAlive = 0;
+    }
+    
+    public int getAlive() {
+        return isAlive;
     }
     
     public void setAddress(String address) {

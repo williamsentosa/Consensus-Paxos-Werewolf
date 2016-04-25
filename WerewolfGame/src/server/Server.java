@@ -21,15 +21,17 @@ public class Server {
     private int port;
     private int timeout;
     private ServerSocket serverSocket;
-    private ArrayList<Socket> clientSockets;
     
     private static int currentIdPlayer = 0;
-    private ArrayList<Player> players = new ArrayList<>();
+    private ArrayList<Player> players;
+    private static int numberPlayerReadied = 0;
+    public static final int MIN_PLAYERS = 3;
+    private static boolean isGameStarted = false;
     
     public Server(int port, int timeout) {
         this.port = port;
         this.timeout = timeout;
-        clientSockets = new ArrayList<>();
+        players = new ArrayList<>();
     }
     
     public static int getCurrentIdPlayer() {
@@ -44,14 +46,33 @@ public class Server {
         currentIdPlayer++;
     }
     
+    public static void incrNumberPlayerReadied() {
+        numberPlayerReadied++;
+    }
+    
+    public static void resetNumberPlayerReadied() {
+        numberPlayerReadied = 0;
+    }
+    
+    public static int getNumberPlayerReadied() {
+        return numberPlayerReadied;
+    }
+    
+    public static boolean isGameStarted() {
+        return isGameStarted;
+    }
+    
+    public static void changeGameStarted(boolean value) {
+        isGameStarted = value;
+    }
+            
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
             serverSocket.setSoTimeout(timeout);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                clientSockets.add(clientSocket);
-                new Thread(new ServerThread(clientSocket, clientSockets, players)).start();
+                new Thread(new ServerThread(clientSocket, players)).start();
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);

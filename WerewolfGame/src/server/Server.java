@@ -23,10 +23,25 @@ public class Server {
     private ServerSocket serverSocket;
     private ArrayList<Socket> clientSockets;
     
+    private static int currentIdPlayer = 0;
+    private ArrayList<Player> players = new ArrayList<>();
+    
     public Server(int port, int timeout) {
         this.port = port;
         this.timeout = timeout;
         clientSockets = new ArrayList<>();
+    }
+    
+    public static int getCurrentIdPlayer() {
+        return currentIdPlayer;
+    }
+    
+    public static void resetCurrentIdPlayer() {
+        currentIdPlayer = 0;
+    }
+    
+    public static void incrCurrentIdPlayer() {
+        currentIdPlayer++;
     }
     
     public void run() {
@@ -36,7 +51,7 @@ public class Server {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 clientSockets.add(clientSocket);
-                new Thread(new ServerThread(clientSocket, clientSockets)).start();
+                new Thread(new ServerThread(clientSocket, clientSockets, players)).start();
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
@@ -44,12 +59,12 @@ public class Server {
     }
     
     public static void main(String args[]) {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Input port : ");
-        int port = sc.nextInt();
+//        Scanner sc = new Scanner(System.in);
+        System.out.println("Starting server at port 8080");
+        int port = 8080;
         int timeout = 20 * 60 * 1000; // 20 minutes
         Server server = new Server(port, timeout);
-        System.out.println("Running server ...");
+        System.out.println("Running server at port " + port + " ...");
         server.run();
     }
 }

@@ -80,10 +80,15 @@ public class ClientThread implements Runnable {
         int playerId = Integer.parseInt(data[1]);
         
         JSONObject response = new JSONObject();
-        response.put("status", "ok");
-        response.put("description", "accepted");
-        response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
-        parent.setPreviousAcceptedKpuId(proposalId);
+        if (parent.getPreviousAcceptedKpuId() <= proposalId) {
+            response.put("status", "ok");
+            response.put("description", "accepted");
+            response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
+            parent.setPreviousAcceptedKpuId(proposalId);
+        } else {
+            response.put("status", "fail");
+            response.put("description", "rejected");
+        }
         
         lastResponse = response.toString();
         parent.sendToClient(lastResponse, ipAddress, port);

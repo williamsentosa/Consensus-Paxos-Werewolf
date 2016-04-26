@@ -27,6 +27,8 @@ public class Client {
     private Scanner scanner;
     private int playerId = -1;
     
+    private final int udpPort = 100;
+    
     public Client() {
         scanner = new Scanner(System.in);
     }
@@ -77,6 +79,8 @@ public class Client {
         JSONObject request = new JSONObject();
         request.put("method", "join");
         request.put("username", username);
+        request.put("udp_address", socket.getLocalAddress().getHostAddress());
+        request.put("udp_port", udpPort);
         send(request.toString());
         try {
             String input = in.readUTF();

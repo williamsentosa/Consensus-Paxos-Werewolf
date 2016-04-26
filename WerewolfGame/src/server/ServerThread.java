@@ -47,6 +47,7 @@ public class ServerThread implements Runnable {
         try {
             while(true) {
                 request = in.readUTF();
+                System.out.println(in);
                 requestHandler(request);
             }
         } catch (IOException ex) {
@@ -67,7 +68,7 @@ public class ServerThread implements Runnable {
         try {
             String method = request.getString("method");
             switch (method) {
-                case "join" : joinHandler(request.getString("username")); break;
+                case "join" : joinHandler(request.getString("username"), request.getString("udp_address"), request.getInt("udp_port")); break;
                 case "leave" : leaveHandler(); break;
                 case "ready" : readyUpHandler(); break;
                 case "client_address" : listClientHandler(); break;
@@ -85,7 +86,7 @@ public class ServerThread implements Runnable {
         send(response.toString());
     }
     
-    private void joinHandler(String username) {
+    private void joinHandler(String username, String udpAddr, int udpPort) {
         boolean exist = isPlayerExist(username);
         JSONObject response = new JSONObject();
         if (Server.isGameStarted()) {
@@ -99,7 +100,7 @@ public class ServerThread implements Runnable {
                 int id = Server.getCurrentIdPlayer();
                 String addr = clientSocket.getInetAddress().getHostAddress();
                 int port = clientSocket.getPort();
-                player = new Player(id, addr, port, username, clientSocket);
+                player = new Player(id, addr, port, username, clientSocket, udpAddr, udpPort);
                 System.out.println(player);
                 Server.incrCurrentIdPlayer();
                 players.add(player);
@@ -162,18 +163,21 @@ public class ServerThread implements Runnable {
             secondWolf = 0 + (int)(Math.random() * players.size());
         }
         for(int i=0; i<players.size(); i++) {
+            players.get(i).setAlive();
             JSONObject response = new JSONObject();
             response.put("method", "start");
             response.put("time", "day");
             if(i != firstWolf && i != secondWolf) {
                 response.put("role", "civilian");
                 response.put("friend", "");
+                players.get(i).setRole("civilian");
             } else {
                 response.put("role", "werewolf");
                 JSONArray arr = new JSONArray();
                 arr.put(players.get(firstWolf).getUsername());
                 arr.put(players.get(secondWolf).getUsername());
                 response.put("friend", arr);
+                players.get(i).setRole("werewolf");
             }
             response.put("description", "game has started");
             send(players.get(i).getSocket(), response.toString());
@@ -188,12 +192,16 @@ public class ServerThread implements Runnable {
             JSONObject obj = new JSONObject();
             obj.put("player_id", p.getPlayerId());
             obj.put("is_alive", p.getAlive());
-            obj.put("address", p.getAddress());
-            obj.put("port", p.getPort());
+            obj.put("address", p.getUdpAddress());
+            obj.put("port", p.getUdpPort());
             obj.put("username", p.getUsername());
+            if(p.getAlive() == 0) {
+                obj.put("role", p.getRole());
+            }
             arr.put(obj);
         }
         response.put("clients", arr);
+        response.put("description", "list of clients retrieved");
         send(response.toString());
     }
     

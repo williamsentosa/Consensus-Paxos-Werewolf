@@ -35,7 +35,7 @@ public class Client {
     private DataInputStream inputFromServer;
     
     private DatagramSocket clientSocket;
-    private int port;
+    private int udpPort;
     private Thread clientThread;
     private static final int UDP_BYTE_LENGTH = 1024;
     
@@ -43,6 +43,7 @@ public class Client {
     private int playerId = -1;
     private int previousAcceptedKpuId = -1;
     private static final int MAX_PROPOSER_COUNT = 2;
+    
     
     public Client() {
         scanner = new Scanner(System.in);
@@ -67,15 +68,15 @@ public class Client {
     }
     
     public void createServer(int port, int timeout) {
-        this.port = port;
+        this.udpPort = port;
         try {
-            clientSocket = new DatagramSocket(this.port);
+            clientSocket = new DatagramSocket(this.udpPort);
             clientSocket.setSoTimeout(timeout);
             
             clientThread = new Thread(new ClientThread(this));
             clientThread.start();
             
-            System.out.println("Client listening on port " + this.port);
+            System.out.println("Client listening on port " + this.udpPort);
         } catch (SocketException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -169,7 +170,8 @@ public class Client {
         JSONObject request = new JSONObject();
         request.put("method", "join");
         request.put("username", username);
-        request.put("udp_port", port);
+        request.put("udp_address", socketToServer.getLocalAddress().getHostAddress());
+        request.put("udp_port", udpPort);
         sendToServer(request.toString());
         try {
             String input = inputFromServer.readUTF();

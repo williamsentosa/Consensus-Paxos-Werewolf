@@ -18,6 +18,9 @@ public class Player {
     private int port;
     private String username;
     private Socket socket;
+    private String role;
+    private String udp_addr;
+    private int udp_port;
     
     public Player() {
         playerId = -1;
@@ -25,18 +28,28 @@ public class Player {
         address = "";
         port = 0;
         username = "";
+        role = "";
+        isAlive = 0;
     }
     
-    public Player(int playerId, String address, int port, String username, Socket socket) {
+    public Player(int playerId, String address, int port, String username, Socket socket, String udp_addr, int udp_port) {
         this.playerId = playerId;
         this.address = address;
         this.port = port;
         this.username = username;
         this.socket = socket;
+        this.udp_addr = udp_addr;
+        this.udp_port = udp_port;
+        isAlive = 0;
+        role = "";
     }
     
     public Socket getSocket() {
         return socket;
+    }
+    
+    public String getRole() {
+        return role;
     }
     
     public int getPlayerId() {
@@ -49,6 +62,14 @@ public class Player {
     
     public int getPort() {
         return port;
+    }
+    
+    public int getUdpPort() {
+        return this.udp_port;
+    }
+    
+    public String getUdpAddress() {
+        return this.udp_addr;
     }
     
     public String getUsername() {
@@ -83,6 +104,10 @@ public class Player {
         this.port = port;
     }
     
+    public void setRole(String role) {
+        this.role = role;
+    }
+    
     public boolean isExist(String username) {
         return this.username.compareTo(username) == 0;
     }
@@ -90,7 +115,7 @@ public class Player {
     @Override
     public String toString() {
         String result = "";
-        result = result + playerId + " " + isAlive + " " + address + " " + port + " " + username;
+        result = result + playerId + " " + isAlive + " " + address + " " + port + " " + username + " " + udp_addr + " " + udp_port;
         return result;
     }
 }

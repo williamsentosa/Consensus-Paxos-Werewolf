@@ -8,10 +8,8 @@ package server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,7 +65,7 @@ public class ServerThread implements Runnable {
         try {
             String method = request.getString("method");
             switch (method) {
-                case "join" : joinHandler(request.getString("username")); break;
+                case "join" : joinHandler(request.getString("username"), request.getInt("udp_port")); break;
                 case "leave" : leaveHandler(); break;
                 case "ready" : readyUpHandler(); break;
                 case "client_address" : listClientHandler(); break;
@@ -85,7 +83,7 @@ public class ServerThread implements Runnable {
         send(response.toString());
     }
     
-    private void joinHandler(String username) {
+    private void joinHandler(String username, int udpPort) {
         boolean exist = isPlayerExist(username);
         JSONObject response = new JSONObject();
         if (Server.isGameStarted()) {
@@ -98,7 +96,7 @@ public class ServerThread implements Runnable {
             } else {
                 int id = Server.getCurrentIdPlayer();
                 String addr = clientSocket.getInetAddress().getHostAddress();
-                int port = clientSocket.getPort();
+                int port = udpPort;
                 player = new Player(id, addr, port, username, clientSocket);
                 System.out.println(player);
                 Server.incrCurrentIdPlayer();

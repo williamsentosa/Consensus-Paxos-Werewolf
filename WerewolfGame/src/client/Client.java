@@ -8,10 +8,19 @@ package client;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -19,42 +28,123 @@ import org.json.JSONObject;
  * @author William Sentosa
  */
 public class Client {
-    private Socket socket;
-    private DataOutputStream out;
-    private DataInputStream in;
-    private String ipAddr;
+    private Socket socketToServer;
+    private String serverIpAddress;
+    private int serverPort;
+    private DataOutputStream outputToServer;
+    private DataInputStream inputFromServer;
+    
+    private DatagramSocket clientSocket;
     private int port;
+    private Thread clientThread;
+    private static final int UDP_BYTE_LENGTH = 1024;
+    
     private Scanner scanner;
     private int playerId = -1;
+    private int previousAcceptedKpuId = -1;
+    private static final int MAX_PROPOSER_COUNT = 2;
     
     public Client() {
         scanner = new Scanner(System.in);
     }
     
-    public Client(String ipAddr, int port) {
+    public Client(String ipAddr, int port, int myPort, int timeout) {
         scanner = new Scanner(System.in);
+        this.createServer(myPort, timeout);
         this.connect(ipAddr, port);
+    }
+
+    public int getPlayerId() {
+        return playerId;
+    }
+
+    public int getPreviousAcceptedKpuId() {
+        return previousAcceptedKpuId;
+    }
+
+    public void setPreviousAcceptedKpuId(int previousAcceptedKpuId) {
+        this.previousAcceptedKpuId = previousAcceptedKpuId;
+    }
+    
+    public void createServer(int port, int timeout) {
+        this.port = port;
+        try {
+            clientSocket = new DatagramSocket(this.port);
+            clientSocket.setSoTimeout(timeout);
+            
+            clientThread = new Thread(new ClientThread(this));
+            clientThread.start();
+            
+            System.out.println("Client listening on port " + this.port);
+        } catch (SocketException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void connect(String ipAddr, int port) {
-        this.ipAddr = ipAddr;
-        this.port = port;
+        serverIpAddress = ipAddr;
+        serverPort = port;
+        
         try {
-            socket = new Socket(ipAddr, port);   
-            out = new DataOutputStream(socket.getOutputStream());
-            in = new DataInputStream(socket.getInputStream());
+            socketToServer = new Socket(serverIpAddress, serverPort);   
+            outputToServer = new DataOutputStream(socketToServer.getOutputStream());
+            inputFromServer = new DataInputStream(socketToServer.getInputStream());
+            
+            System.out.println("Connected to " + serverIpAddress + " port " + serverPort + "...");
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    public void send(String msg) {
+    public void sendToServer(String msg) {
         try {
-            out.writeUTF(msg);
+            outputToServer.writeUTF(msg);
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    public void sendToClient(String msg, String ipAddr, int port) {
+        try {
+            InetAddress ipAddress = InetAddress.getByName("localhost");
+            byte[] outputToClient = new byte[UDP_BYTE_LENGTH];;
+            outputToClient = msg.getBytes();
+            
+            DatagramPacket sendPacket = new DatagramPacket(outputToClient, outputToClient.length, ipAddress, port);
+            UnreliableSender unreliableSender = new UnreliableSender(clientSocket);
+            unreliableSender.send(sendPacket);
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public DatagramPacket receiveFromClient() throws SocketTimeoutException, IOException {
+        byte[] inputFromClient = new byte[UDP_BYTE_LENGTH];;
+        DatagramPacket receivePacket = new DatagramPacket(inputFromClient, inputFromClient.length);
+        clientSocket.receive(receivePacket);
+        return receivePacket;
+    }
+    
+    public DatagramPacket clientSendAndReceive(String msg, String ipAddr, int port) {
+        boolean isReceived = false;
+        while (!isReceived) {
+            sendToClient(msg, ipAddr, port);
+            try {
+                DatagramPacket dp = receiveFromClient();
+                isReceived = true;
+                
+                return dp;
+            } catch (SocketTimeoutException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return null;
+    }
+    
     
     public void run() {
         String request = "";
@@ -67,6 +157,8 @@ public class Client {
                 case "leave game" : leaveCommand(); break;
                 case "ready up" : readyUpCommand(); break;
                 case "list client" : listClientCommand(); break;
+                case "prepare proposal" : paxosPrepareProposal(); break;
+                default: System.out.println("Invalid command");
             }
         }
     }
@@ -77,9 +169,10 @@ public class Client {
         JSONObject request = new JSONObject();
         request.put("method", "join");
         request.put("username", username);
-        send(request.toString());
+        request.put("udp_port", port);
+        sendToServer(request.toString());
         try {
-            String input = in.readUTF();
+            String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
             String status = response.getString("status");
             switch (status) {
@@ -102,9 +195,9 @@ public class Client {
     private void leaveCommand() {
         JSONObject request = new JSONObject();
         request.put("method", "leave");
-        send(request.toString());
+        sendToServer(request.toString());
         try {
-            String input = in.readUTF();
+            String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
             String status = response.getString("status");
             switch (status) {
@@ -126,15 +219,15 @@ public class Client {
     private void readyUpCommand() {
         JSONObject request = new JSONObject();
         request.put("method", "ready");
-        send(request.toString());
+        sendToServer(request.toString());
         try {
-            String input = in.readUTF();
+            String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
             String status = response.getString("status");
             switch (status) {
                 case "ok" : 
                     System.out.println(response.getString("description"));
-                    input = in.readUTF();
+                    input = inputFromServer.readUTF();
                     System.out.println(input);
                     startPlaying();
                     break;
@@ -152,18 +245,20 @@ public class Client {
         // Isi dengan perintah bermain
     }
     
-    private void listClientCommand() {
+    JSONArray listClientCommand() {
         JSONObject request = new JSONObject();
         request.put("method", "client_address");
-        send(request.toString());
+        sendToServer(request.toString());
+        
+        JSONArray returnValue = new JSONArray();
         try {
-            String input = in.readUTF();
+            String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
             String status = response.getString("status");
             switch (status) {
                 case "ok" : 
-                    System.out.println(response.get("clients"));
-                    break;
+                    System.out.println(response.getJSONArray("clients"));
+                    return response.getJSONArray("clients");
                 case "fail" :
                     System.out.println("Failed, " + response.getString("description") + ".");
                     break;
@@ -174,13 +269,91 @@ public class Client {
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return returnValue;
+    }
+    
+    private void paxosPrepareProposal() {
+        clientThread.interrupt();
+        while (clientThread.isAlive()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        int greaterPlayerIdCount = 0;
+        JSONArray clients = listClientCommand();
+        
+        // TODO: Does this quorum count really applies?
+        int quorumCount = clients.length() - 1;
+        
+        String[] addresses = new String[quorumCount];
+        int[] ports = new int[quorumCount];
+        int c = 0;
+        
+        /* checks if client is a valid proposer: Yang bisa jadi proposer cuman pid dua terbesar (player ke n dan n-1) */
+        for (int i = 0; i < clients.length() && greaterPlayerIdCount < MAX_PROPOSER_COUNT; i++) {
+            JSONObject client = clients.getJSONObject(i);
+            if (client.getInt("player_id") != playerId) {
+                if (client.getInt("player_id") > playerId) {
+                    greaterPlayerIdCount++;
+                }
+
+                addresses[c] = (client.getString("address"));
+                ports[c] = (client.getInt("port"));
+                c++;
+            }
+        }
+        
+        if (greaterPlayerIdCount >= MAX_PROPOSER_COUNT) {
+            System.err.println("You are unable to be a proposer");
+            return;
+        }
+        
+        
+        /* send request */
+        // TODO: proposal_id is waiting perfect specification
+        JSONObject request = new JSONObject();
+        request.put("method", "prepare_proposal");
+        request.put("proposal_id", "(" + (++previousAcceptedKpuId) + ", " + playerId + ")");
+        
+        int latestAcceptedKpuId = -1;
+        for (int i = 0; i < addresses.length; i++) {
+            DatagramPacket dp = clientSendAndReceive(request.toString(), addresses[i], ports[i]);
+            String responseString = new String(dp.getData());
+            JSONObject response = new JSONObject(responseString);
+            String status = response.getString("status");
+
+            switch (status) {
+                case "ok":
+                    int prevAcceptedKpuId = response.getInt("previous_accepted");
+                    System.out.println("Accepted, " + prevAcceptedKpuId);
+
+                    if (latestAcceptedKpuId < prevAcceptedKpuId) {
+                        prevAcceptedKpuId = latestAcceptedKpuId;
+                    }
+
+                    break;
+                case "fail":
+                    System.out.println("Failed, " + response.get("description"));
+                    break;
+                case "error":
+                    System.out.println("Error, " + response.get("description"));
+                    break;
+            }
+        }
+        
+        clientThread = new Thread(new ClientThread(this));
+        clientThread.start();
     }
     
     public static void main(String args[]) {
-        String ipAddr = "127.0.0.1";
-        int port = 8080;
-        Client client = new Client(ipAddr, port);
-        System.out.println("Connected to " + ipAddr + " port " + port + "...");
+        String serverIpAddress = "127.0.0.1";
+        int serverPort = 8080;
+        int myPort = Integer.parseInt(args[0]);
+        int timeout = 1 * 1000; // 5 seconds
+        Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
         client.run();
     }
 }

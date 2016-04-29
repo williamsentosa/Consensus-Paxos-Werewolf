@@ -43,14 +43,17 @@ public class Client {
     private int playerId = -1;
     private int previousAcceptedKpuId = -1;
     private static final int MAX_PROPOSER_COUNT = 2;
-    
+    private ArrayList<String> friends;
+    private String role;
     
     public Client() {
         scanner = new Scanner(System.in);
+        role = "";
     }
     
     public Client(String ipAddr, int port, int myPort, int timeout) {
         scanner = new Scanner(System.in);
+        role = "";
         this.createServer(myPort, timeout);
         this.connect(ipAddr, port);
     }
@@ -231,7 +234,9 @@ public class Client {
                     System.out.println(response.getString("description"));
                     input = inputFromServer.readUTF();
                     System.out.println(input);
-                    startPlaying();
+                    response = new JSONObject(input);
+                    role = response.getString("role");
+                    startPlaying(convertJSONArrayToList(response.getJSONArray("friend")));
                     break;
                 case "error" :
                     System.out.println("Failed, " + response.getString("description") + ".");
@@ -242,9 +247,58 @@ public class Client {
         }
     }
     
-    private void startPlaying() {
+    private ArrayList<String> convertJSONArrayToList(JSONArray arr)  {
+        ArrayList<String> result = new ArrayList<String>();
+        for(int i=0; i<arr.length(); i++) {
+            result.add(arr.getString(i));
+        }
+        return result;
+    }
+    
+    private void startPlaying(ArrayList<String> friends) {
         System.out.println("Playing...");
-        // Isi dengan perintah bermain
+        System.out.println("Your role : " + role);
+        if(role.compareTo("werewolf") == 0) {
+            System.out.println("Your friend are : ");
+            for(String s : friends) {
+                System.out.println(s);
+            }
+        }
+        boolean finished = false;
+        while(!finished) {
+            dayPhase();
+            waitChangePhase();
+            nightPhase();
+            waitChangePhase();
+        }
+        
+    }
+    
+    private void dayPhase() {
+        chooseLeader();
+        killWerewolfVote();
+    }
+    
+    private void nightPhase() {
+        if(role.compareTo("werewolf")  == 0) {
+            killCivilianVote();
+        }
+    }
+    
+    private void chooseLeader() {
+        //
+    }
+    
+    private void killWerewolfVote() {
+        
+    }
+    
+    private void waitChangePhase() {
+        
+    }
+    
+    private void killCivilianVote() {
+        
     }
     
     JSONArray listClientCommand() {
@@ -351,9 +405,11 @@ public class Client {
     }
     
     public static void main(String args[]) {
+        Scanner in = new Scanner(System.in);
         String serverIpAddress = "127.0.0.1";
         int serverPort = 8080;
-        int myPort = Integer.parseInt(args[0]);
+        System.out.print("Input yout port : ");
+        int myPort = in.nextInt();
         int timeout = 1 * 1000; // 5 seconds
         Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
         client.run();

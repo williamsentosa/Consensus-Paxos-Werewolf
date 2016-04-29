@@ -166,7 +166,8 @@ public class ServerThread implements Runnable {
             response.put("time", "day");
             if(i != firstWolf && i != secondWolf) {
                 response.put("role", "civilian");
-                response.put("friend", "");
+                JSONArray arr = new JSONArray();
+                response.put("friend", arr);
                 players.get(i).setRole("civilian");
             } else {
                 response.put("role", "werewolf");

@@ -177,6 +177,16 @@ public class Client {
         return null;
     }
     
+    private List<Player> numberAlive(){
+        List<Player> result = new ArrayList<Player>();
+        List<Player> Clients = getListClient();
+        for(Player client : Clients) {
+            if(client.getAlive()==1) 
+                result.add(client);
+        }
+        return result;
+    }
+    
     private void joinCommand() {
         System.out.print("Input username : ");
         String username = scanner.nextLine();
@@ -265,6 +275,32 @@ public class Client {
         return result;
     }
     
+    private void gameOver(JSONObject response){
+        System.out.println("winner : "+ response.getString("winner"));
+        System.out.println("description : "+ response.getString("description"));
+    }
+    
+    private void responseHandler(JSONObject response){
+        String method = response.getString("method");
+        switch(method){
+            case "change_phase" :
+                changePhase(response);
+                break;
+            case "game_over" :
+                gameOver(response);
+                break;
+            case "vote_now" :
+                String phase = response.getString("phase");
+                if(phase.equals("day")) {
+                    //killWerewolfVote()
+                    System.out.println("DAY");
+                }else {
+                    System.out.println("NIGHT");
+                }
+                break;
+        }
+    }
+    
     private void startPlaying(ArrayList<String> friends) {
         System.out.println("Playing...");
         System.out.println("Your role : " + role);
@@ -276,10 +312,13 @@ public class Client {
         }
         boolean finished = false;
         while(!finished) {
-            dayPhase();
-            waitChangePhase();
-            nightPhase();
-            waitChangePhase();
+            try {
+                String input = inputFromServer.readUTF();
+                JSONObject response = new JSONObject(input);
+                responseHandler(response);
+;            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
         
     }
@@ -323,7 +362,10 @@ public class Client {
     
     private void infoWerewolfKilled() {
         int kill = -1;
-         
+        List<Player> player = numberAlive();
+        for(int i=0; i<numberAlive().size(); i++) {
+            
+        }
        //send to server
         JSONObject request = new JSONObject();
         if(kill==1) {
@@ -356,8 +398,10 @@ public class Client {
         }
     }
     
-    private void waitChangePhase() {
-        
+    private void changePhase(JSONObject response) {
+        System.out.println("time : "+ response.getString("time"));
+        System.out.println("days : "+ response.getInt("days"));
+        System.out.println("description : "+ response.getString("description"));
     }
     
     private void killCivilianVote(int kpuId, int playerId) {

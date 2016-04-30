@@ -72,37 +72,37 @@ public class Server {
     public static void changeGameStarted(boolean value) {
         isGameStarted = value;
     }
-
-    public int getCurrentLeaderId() {
-        return currentLeaderId;
+    
+    public static String getCurrentPhase() {
+        return currentPhase;
     }
     
     public static void changeCurrentPhase(String phase) {
         currentPhase = phase;
     }
-
-    public void setCurrentLeaderId(int currentLeaderId) {
-        this.currentLeaderId = currentLeaderId;
-    }
-    
-    public static String getCurrentPhase() {
-        return currentPhase;
-    }
-
-    public ArrayList<Integer> getLeaderVotes() {
-        return leaderVotes;
-    }
     
     public static void incrDays() {
         days++;
     }
-
-    public void setLeaderVotes(ArrayList<Integer> leaderVotes) {
-        this.leaderVotes = leaderVotes;
-    }
     
     public static int getDays() {
         return days;
+    }
+    
+    public int getCurrentLeaderId() {
+        return currentLeaderId;
+    }
+    
+    public void setCurrentLeaderId(int currentLeaderId) {
+        this.currentLeaderId = currentLeaderId;
+    }
+    
+    public ArrayList<Integer> getLeaderVotes() {
+        return leaderVotes;
+    }
+    
+    public void setLeaderVotes(ArrayList<Integer> leaderVotes) {
+        this.leaderVotes = leaderVotes;
     }
     
     public void processLeaderVotes() {
@@ -122,7 +122,7 @@ public class Server {
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
             
-            int voteCount = voteMap.get(player.getPlayerId()).intValue();
+            int voteCount = voteMap.get(player.getPlayerId());
             if (voteCount > maxVoteCount) {
                 maxVoteCount = voteCount;
                 chosenLeaderId = player.getPlayerId();

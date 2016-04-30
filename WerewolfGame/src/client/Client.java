@@ -351,14 +351,15 @@ public class Client {
     }
     
     private void chooseLeader() {
-        List<Player> players = listClientCommand();
+        List<Player> players = getListClient();
         if (isLeader()) {
             if (paxosPrepareProposal(players) == 1) {
                 paxosAcceptProposal(players);
             }
+        }
     }
     
-    private void killWerewolfVote(int kpuId, int playerId) {
+    public void killWerewolfVote(int kpuId, int playerId) {
         List<Player> clients = getListClient();
         Player client = findPlayer(kpuId, clients);
         JSONObject request = new JSONObject();
@@ -377,6 +378,7 @@ public class Client {
                 break;
             case "error":
                 break;
+        }
     }
     
     private void infoWerewolfKilled() {
@@ -452,6 +454,7 @@ public class Client {
         try {
             String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
+            System.out.println(response.toString());
             String status = response.getString("status");
             switch (status) {
                 case "ok" : 
@@ -479,38 +482,12 @@ public class Client {
         }
         return returnValue;
     }
-    
-//    JSONArray listClientCommand() {
-//        JSONObject request = new JSONObject();
-//        request.put("method", "client_address");
-//        sendToServer(request.toString());
-//        
-//        JSONArray returnValue = new JSONArray();
-//        try {
-//            String input = inputFromServer.readUTF();
-//            JSONObject response = new JSONObject(input);
-//            String status = response.getString("status");
-//            switch (status) {
-//                case "ok" : 
-//                    System.out.println(response.getJSONArray("clients"));
-//                    return response.getJSONArray("clients");
-//                case "fail" :
-//                    System.out.println("Failed, " + response.getString("description") + ".");
-//                    break;
-//                case "error" :
-//                    System.out.println("Failed, " + response.getString("description") + ".");
-//                    break;
-//            }
-//        } catch (IOException ex) {
-//            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        return returnValue;
-//    }
+
     
     private boolean isLeader() {
         boolean isLeader;
         
-        List<Player> players = listClientCommand();
+        List<Player> players = getListClient();
         
         int greaterPlayerIdCount = 0;
         int quorumCount = players.size() - 1;

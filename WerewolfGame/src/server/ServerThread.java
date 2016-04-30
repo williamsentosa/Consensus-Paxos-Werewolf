@@ -185,7 +185,7 @@ public class ServerThread implements Runnable {
             response.put("description", "game has started");
             send(players.get(i).getSocket(), response.toString());
         }
-        voteNow();
+//        voteNow();
     }
     
     private void listClientHandler() {
@@ -223,6 +223,7 @@ public class ServerThread implements Runnable {
         
         if (parent.getLeaderVotes().size() == players.size()) {
             parent.processLeaderVotes();
+            voteNow();
         }
     }
     

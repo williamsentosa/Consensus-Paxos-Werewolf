@@ -60,7 +60,11 @@ public class ClientThread extends Observable implements Runnable {
                     case "accept_proposal":
                         acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
                         parent.clientAcceptProposal();
-                        parent.killWerewolfVote();
+                        
+                        // TODO: change appropriate kpuId and playerId
+                        int kpuId = 0;
+                        int playerId = 0;
+                        parent.killWerewolfVote(kpuId, playerId);
                         break;
                 }
             } catch (JSONException ex) {
@@ -90,8 +94,8 @@ public class ClientThread extends Observable implements Runnable {
             if (parent.getPreviousAcceptedKpuId() > 0) {
                 response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
             }
-//            parent.setPreviousAcceptedKpuId(proposalId);
-//            parent.setPreviousProposerId(proposerId);
+            parent.setPreviousAcceptedKpuId(proposalId);
+            parent.setPreviousProposerId(proposerId);
         } else {
             response.put("status", "fail");
             response.put("description", "rejected");
@@ -106,7 +110,7 @@ public class ClientThread extends Observable implements Runnable {
         int proposerId = proposalIdData.getInt(1);
         
         JSONObject response = new JSONObject();
-        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() < proposerId) {
+        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() <= proposerId) {
             response.put("status", "ok");
             response.put("description", "accepted");
             parent.setPreviousAcceptedKpuId(proposalId);

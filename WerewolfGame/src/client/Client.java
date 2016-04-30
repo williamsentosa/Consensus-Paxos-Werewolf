@@ -10,7 +10,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -50,6 +49,7 @@ public class Client {
     
     private ArrayList<String> friends;
     private String role;
+    private ArrayList<Player> players;
     
     public Client() {
         scanner = new Scanner(System.in);
@@ -156,16 +156,18 @@ public class Client {
     }
     
     public DatagramPacket receiveFromClient() throws SocketTimeoutException, IOException {
-        byte[] inputFromClient = new byte[UDP_BYTE_LENGTH];;
+        byte[] inputFromClient = new byte[UDP_BYTE_LENGTH];
         DatagramPacket receivePacket = new DatagramPacket(inputFromClient, inputFromClient.length);
         clientSocket.receive(receivePacket);
         return receivePacket;
     }
     
     public DatagramPacket clientSendAndReceive(String msg, String ipAddr, int port) {
+        System.out.println("Ip addr : " + ipAddr);
+        System.out.println("port : " + port);
         boolean isReceived = false;
         int retryCount = 0;
-        while (!isReceived || retryCount < MAX_RETRY) {
+        while (!isReceived && retryCount < MAX_RETRY) {
             sendToClient(msg, ipAddr, port);
             try {
                 DatagramPacket dp = receiveFromClient();
@@ -184,10 +186,13 @@ public class Client {
     
     
     public DatagramPacket clientSendAndReceive(String msg, String ipAddr, int port, boolean isUnreliable) {
+        System.out.println("Ip addr : " + ipAddr);
+        System.out.println("port : " + port);
+        
         boolean isReceived = false;
         int retryCount = 0;
         
-        while (!isReceived || retryCount < MAX_RETRY) {
+        while (!isReceived && retryCount < MAX_RETRY) {
             sendToClient(msg, ipAddr, port, isUnreliable);
             
             try {
@@ -200,6 +205,7 @@ public class Client {
             } catch (IOException ex) {
                 Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
             }
+            retryCount++;
         }
         return null;
     }
@@ -231,8 +237,7 @@ public class Client {
     
     private List<Player> numberAlive(){
         List<Player> result = new ArrayList<Player>();
-        List<Player> Clients = getListClient();
-        for(Player client : Clients) {
+        for(Player client : players) {
             if(client.getAlive()==1) 
                 result.add(client);
         }
@@ -327,9 +332,52 @@ public class Client {
         return result;
     }
     
-    private void gameOver(JSONObject response){
-        System.out.println("winner : "+ response.getString("winner"));
-        System.out.println("description : "+ response.getString("description"));
+    private void startPlaying(ArrayList<String> friends) {
+        System.out.println("Playing...");
+        System.out.println("Your role : " + role);
+        if(role.compareTo("werewolf") == 0) {
+            System.out.println("Your friend are : ");
+            for(String s : friends) {
+                System.out.println(s);
+            }
+        }
+        boolean finished = false;
+        while(!finished) {
+            this.getListClient();
+            System.out.println("Entering day Phase");
+            dayPhase();
+            waitResponseFromServer();
+            this.getListClient();
+            nightPhase();
+            waitResponseFromServer();
+        }
+        
+    }
+    
+    private void dayPhase() {
+        chooseLeader();
+        waitResponseFromServer();
+        // waitForVote();
+        // --> paxosPrepareProposal
+        // --> paxosAcceptProposal
+        // clientAcceptProposal  --> called in ClientThread
+        // killWerewolfVote      --> called in ClientThread
+    }
+    
+    private void waitResponseFromServer() {
+        try {
+            String input = inputFromServer.readUTF();
+            JSONObject response = new JSONObject(input);
+            responseHandler(response);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void nightPhase() {
+        if(role.compareTo("werewolf")  == 0) {
+            waitResponseFromServer();
+        }
     }
     
     private void responseHandler(JSONObject response){
@@ -344,53 +392,43 @@ public class Client {
             case "vote_now" :
                 String phase = response.getString("phase");
                 if(phase.equals("day")) {
-                    //killWerewolfVote()
-                    System.out.println("DAY");
-                }else {
-                    System.out.println("NIGHT");
+                    System.out.println("*** Kill Werewolf ***");
+                    showAvailablePlayer();
+                    System.out.print("Input username yang ingin dibunuh : ");
+                    String username = scanner.nextLine();
+                    int kpuId = getCurrentLeaderId();
+                    killWerewolfVote(kpuId, username);
+                } else {
+                    System.out.println("*** Kill Civilian ***");
+                    System.out.print("Input username yang ingin dibunuh : ");
+                    String username = scanner.nextLine();
+                    int kpuId = getCurrentLeaderId();
+                    killCivilianVote(kpuId, username);
                 }
                 break;
         }
     }
     
-    private void startPlaying(ArrayList<String> friends) {
-        System.out.println("Playing...");
-        System.out.println("Your role : " + role);
-        if(role.compareTo("werewolf") == 0) {
-            System.out.println("Your friend are : ");
-            for(String s : friends) {
-                System.out.println(s);
-            }
+    private void showAvailablePlayer() {
+        for(Player p : players) {
+            System.out.println(p.getUsername());
         }
-        boolean finished = false;
-        while(!finished) {
-            try {
-                String input = inputFromServer.readUTF();
-                JSONObject response = new JSONObject(input);
-                responseHandler(response);
-;            } catch (IOException ex) {
-                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        
     }
     
-    private void dayPhase() {
-        chooseLeader();
-        // --> paxosPrepareProposal
-        // --> paxosAcceptProposal
-        // clientAcceptProposal  --> called in ClientThread
-        // killWerewolfVote      --> called in ClientThread
+    private void changePhase(JSONObject response) {
+        System.out.println("time : "+ response.getString("time"));
+        System.out.println("days : "+ response.getInt("days"));
+        System.out.println("description : "+ response.getString("description"));
     }
     
-    private void nightPhase() {
-        if(role.compareTo("werewolf")  == 0) {
-            //killCivilianVote();
-        }
+    private void gameOver(JSONObject response){
+        System.out.println("winner : "+ response.getString("winner"));
+        System.out.println("description : "+ response.getString("description"));
     }
+    
+    
     
     private void chooseLeader() {
-        List<Player> players = getListClient();
         if (isLeader()) {
             if (paxosPrepareProposal(players) == 1) {
                 paxosAcceptProposal(players);
@@ -398,14 +436,19 @@ public class Client {
         }
     }
     
-    public void killWerewolfVote(int kpuId, int playerId) {
-        List<Player> clients = getListClient();
-        Player client = findPlayer(kpuId, clients);
+    public void killWerewolfVote(int kpuId, String username) {
+        int playerId;
+        Player client = this.findPlayer(kpuId, players);
+        for(Player p : players) {
+            if(p.getUsername().compareTo(username) == 0){
+                playerId = p.getPlayerId();
+            }
+        }
         JSONObject request = new JSONObject();
         request.put("method", "vote_werewolf");
-        request.put("player_id", playerId);
+        request.put("player_id", client.getPlayerId());
         
-        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getAddress(), client.getPort());
+        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getUdpAddress(), client.getUdpPort());
         String responseString = new String(dp.getData());
         JSONObject response = new JSONObject(responseString);
         String status = response.getString("status");
@@ -457,21 +500,21 @@ public class Client {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+ 
     
-    private void changePhase(JSONObject response) {
-        System.out.println("time : "+ response.getString("time"));
-        System.out.println("days : "+ response.getInt("days"));
-        System.out.println("description : "+ response.getString("description"));
-    }
-    
-    private void killCivilianVote(int kpuId, int playerId) {
-        List<Player> clients = getListClient();
-        Player client = findPlayer(kpuId, clients);
+    private void killCivilianVote(int kpuId, String username) {
+        Player client = findPlayer(kpuId, players);
         JSONObject request = new JSONObject();
         request.put("method", "vote_civilian");
+        int playerId = 0;
+        for(Player p : players) {
+            if(p.getUsername().compareTo(username) == 0) {
+                playerId = p.getPlayerId();
+            }
+        }
         request.put("player_id", playerId);
         
-        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getAddress(), client.getPort());
+        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getUdpAddress(), client.getUdpPort());
         String responseString = new String(dp.getData());
         JSONObject response = new JSONObject(responseString);
         String status = response.getString("status");
@@ -489,12 +532,11 @@ public class Client {
         }
     }
     
-    private List<Player> getListClient() {
+    private void getListClient() {
+        players = new ArrayList<>();
         JSONObject request = new JSONObject();
         request.put("method", "client_address");
         sendToServer(request.toString());
-        
-        List<Player> returnValue = new ArrayList<Player>();
         try {
             String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
@@ -511,9 +553,9 @@ public class Client {
                         String address = jsonLineClient.getString("address");
                         int port = jsonLineClient.getInt("port");
                         String username = jsonLineClient.getString("username");
-                        
-                        returnValue.add(new Player(playerId, isAlive, address, port, username));
+                        players.add(new Player(playerId, isAlive, address, port, username));
                     }
+                    break;
                 case "fail" :
                     System.out.println("Failed, " + response.getString("description") + ".");
                     break;
@@ -524,18 +566,13 @@ public class Client {
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return returnValue;
     }
 
     
     private boolean isLeader() {
         boolean isLeader;
-        
-        List<Player> players = getListClient();
-        
         int greaterPlayerIdCount = 0;
         int quorumCount = players.size() - 1;
-        
         int c = 0;
         
         /* checks if client is a valid proposer: Yang bisa jadi proposer cuman pid dua terbesar (player ke n dan n-1) */
@@ -577,8 +614,8 @@ public class Client {
         for (int i = 0; i < players.size(); i++) {
             
             Player client = players.get(i);
-            String address = client.getAddress();
-            int port = client.getPort();
+            String address = client.getUdpAddress();
+            int port = client.getUdpPort();
             
             DatagramPacket dp = clientSendAndReceive(request.toString(), address, port, true);
             String responseString = new String(dp.getData());
@@ -630,7 +667,7 @@ public class Client {
         
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
-            DatagramPacket dp = clientSendAndReceive(request.toString(), player.getUdpAddress(), player.getPort(), true);
+            DatagramPacket dp = clientSendAndReceive(request.toString(), player.getUdpAddress(), player.getUdpPort(), true);
             String ipAddress = dp.getAddress().getHostAddress();
             
             String responseString = new String(dp.getData());
@@ -702,6 +739,10 @@ public class Client {
                 Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+    
+    private int getCurrentLeaderId() {
+        return players.get(players.size() - 1).getPlayerId();
     }
     
     public static void main(String args[]) {

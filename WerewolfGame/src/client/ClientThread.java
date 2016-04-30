@@ -60,11 +60,6 @@ public class ClientThread extends Observable implements Runnable {
                     case "accept_proposal":
                         acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
                         parent.clientAcceptProposal();
-                        
-                        // TODO: change appropriate kpuId and playerId
-                        int kpuId = 0;
-                        int playerId = 0;
-                        parent.killWerewolfVote(kpuId, playerId);
                         break;
                 }
             } catch (JSONException ex) {

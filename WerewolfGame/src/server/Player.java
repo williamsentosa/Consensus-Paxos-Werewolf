@@ -44,6 +44,14 @@ public class Player {
         role = "";
     }
     
+    public Player(int playerId, int isAlive, String udp_addr, int udp_port, String username) {
+        this.playerId = playerId;
+        this.isAlive = isAlive;
+        this.udp_addr = udp_addr;
+        this.udp_port = udp_port;
+        this.username = username;
+    }
+    
     public Socket getSocket() {
         return socket;
     }

@@ -27,11 +27,13 @@ public class ServerThread implements Runnable {
     private DataInputStream in;
     private ArrayList<Player> players;
     private Player player;
+    private Server parent;
     private static int countVote = 0;
     
-    public ServerThread(Socket clientSocket, ArrayList<Player> players) {
+    public ServerThread(Socket clientSocket, ArrayList<Player> players, Server server) {
         this.clientSocket = clientSocket;
         this.players = players;
+        this.parent = server;
         try {
             out = new DataOutputStream(clientSocket.getOutputStream());
             in = new DataInputStream(clientSocket.getInputStream());
@@ -70,6 +72,7 @@ public class ServerThread implements Runnable {
                 case "leave" : leaveHandler(); break;
                 case "ready" : readyUpHandler(); break;
                 case "client_address" : listClientHandler(); break;
+                case "prepare_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
                 case "vote_result_civilian" : voteResultCivilianHandler(request); break;
                 case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
             }
@@ -204,6 +207,23 @@ public class ServerThread implements Runnable {
         response.put("clients", arr);
         response.put("description", "list of clients retrieved");
         send(response.toString());
+    }
+    
+    private void clientAcceptProposalHandler(int votedLeaderId) {
+        // parent.leaderVotes is cleared before receiving any clientAcceptProposal (7. prepare_proposal).
+        if (parent.getLeaderVotes().size() == players.size()) {
+            parent.getLeaderVotes().clear();
+        }
+        
+        parent.getLeaderVotes().add(votedLeaderId);
+        
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
+        
+        if (parent.getLeaderVotes().size() == players.size()) {
+            parent.processLeaderVotes();
+        }
     }
     
     private void voteResultCivilianHandler(JSONObject request) {

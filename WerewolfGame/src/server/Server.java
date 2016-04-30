@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,12 +29,15 @@ public class Server {
     private static int numberPlayerReadied = 0;
     public static final int MIN_PLAYERS = 3;
     private static boolean isGameStarted = false;
+    private int currentLeaderId = -1;
+    private ArrayList<Integer> leaderVotes;
     private static String currentPhase = "day";
     private static int days = 0;
     
     public Server(int port, int timeout) {
         this.port = port;
         this.timeout = timeout;
+        leaderVotes = new ArrayList<>();
         players = new ArrayList<>();
     }
     
@@ -67,30 +72,71 @@ public class Server {
     public static void changeGameStarted(boolean value) {
         isGameStarted = value;
     }
+
+    public int getCurrentLeaderId() {
+        return currentLeaderId;
+    }
     
     public static void changeCurrentPhase(String phase) {
         currentPhase = phase;
+    }
+
+    public void setCurrentLeaderId(int currentLeaderId) {
+        this.currentLeaderId = currentLeaderId;
     }
     
     public static String getCurrentPhase() {
         return currentPhase;
     }
+
+    public ArrayList<Integer> getLeaderVotes() {
+        return leaderVotes;
+    }
     
     public static void incrDays() {
         days++;
+    }
+
+    public void setLeaderVotes(ArrayList<Integer> leaderVotes) {
+        this.leaderVotes = leaderVotes;
     }
     
     public static int getDays() {
         return days;
     }
     
+    public void processLeaderVotes() {
+        Map<Integer, Integer> voteMap = new HashMap<>();
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            voteMap.put(player.getPlayerId(), 0);
+        }
+        
+        for (int i = 0; i < leaderVotes.size(); i++) {
+            int votedLeader = leaderVotes.get(i);
+            voteMap.put(votedLeader, voteMap.get(votedLeader).intValue() + 1);
+        }
+        
+        int chosenLeaderId = -1;
+        int maxVoteCount = -1;
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            
+            int voteCount = voteMap.get(player.getPlayerId()).intValue();
+            if (voteCount > maxVoteCount) {
+                maxVoteCount = voteCount;
+                chosenLeaderId = player.getPlayerId();
+            }
+        }
+    }
+            
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
             serverSocket.setSoTimeout(timeout);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                new Thread(new ServerThread(clientSocket, players)).start();
+                new Thread(new ServerThread(clientSocket, players, this)).start();
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);

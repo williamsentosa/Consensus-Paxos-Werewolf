@@ -27,6 +27,7 @@ public class ServerThread implements Runnable {
     private DataInputStream in;
     private ArrayList<Player> players;
     private Player player;
+    private static int countVote = 0;
     
     public ServerThread(Socket clientSocket, ArrayList<Player> players) {
         this.clientSocket = clientSocket;
@@ -69,6 +70,8 @@ public class ServerThread implements Runnable {
                 case "leave" : leaveHandler(); break;
                 case "ready" : readyUpHandler(); break;
                 case "client_address" : listClientHandler(); break;
+                case "vote_result_civilian" : voteResultCivilianHandler(request); break;
+                case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
             }
         } catch (JSONException ex) {
             errorHandler();
@@ -153,7 +156,6 @@ public class ServerThread implements Runnable {
     }
     
     private void startGame() {
-        Random random = new Random();
         int firstWolf = 0 + (int)(Math.random() * players.size()); 
         int secondWolf = 0 + (int)(Math.random() * players.size());
         while (secondWolf == firstWolf) {
@@ -180,6 +182,7 @@ public class ServerThread implements Runnable {
             response.put("description", "game has started");
             send(players.get(i).getSocket(), response.toString());
         }
+        voteNow();
     }
     
     private void listClientHandler() {
@@ -201,6 +204,91 @@ public class ServerThread implements Runnable {
         response.put("clients", arr);
         response.put("description", "list of clients retrieved");
         send(response.toString());
+    }
+    
+    private void voteResultCivilianHandler(JSONObject request) {
+        int playerKilled;
+        if(request.getInt("vote_status") == 1) {
+            playerKilled = request.getInt("player_killed");
+            for(Player p : players) {
+                if(p.getPlayerId() == playerKilled) {
+                    p.setNotAlive();
+                    break;
+                }
+            }
+        }
+        System.out.println("Vote Result : " + request.getString("vote_result"));
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
+        send(response.toString());
+        if(request.getInt("vote_status") == -1) {
+            if(countVote < 2) {
+                countVote++;
+                voteNow();
+            } else {
+                countVote = 0;
+                changePhase("night");
+            }
+        } else if(request.getInt("vote_status") == 1) {
+            countVote = 0;
+            changePhase("night");
+        }
+    }
+    
+    private void voteResultWerewolfHandler(JSONObject request) {
+        int playerKilled;
+        if(request.getInt("vote_status") == 1) {
+            playerKilled = request.getInt("player_killed");
+            for(Player p : players) {
+                if(p.getPlayerId() == playerKilled) {
+                    p.setNotAlive();
+                    break;
+                }
+            }
+        }
+        System.out.println("Vote Result : " + request.getString("vote_result"));
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
+        send(response.toString());
+        if(request.getInt("vote_status") == -1) {
+            voteNow();
+        } else if(request.getInt("vote_status") == 1) {
+            changePhase("day");
+        }
+    }
+    
+    private void voteNow() {
+        JSONObject response = new JSONObject();
+        response.put("method", "vote_now");
+        response.put("phase", Server.getCurrentPhase());
+        if(Server.getCurrentPhase().compareTo("day") == 0) {
+            for(Player p : players) {
+                send(p.getSocket(), response.toString());
+            }
+        } else if(Server.getCurrentPhase().compareTo("night") == 0) {
+            for(Player p : players) {
+                if(p.getRole().compareTo("werewolf") == 0) {
+                    send(p.getSocket(), response.toString());
+                }
+            }
+        }
+    }
+    
+    private void changePhase(String phase) {
+        Server.changeCurrentPhase(phase);
+        if(phase.compareTo("day") == 0) {
+            Server.incrDays();
+        }
+        JSONObject response = new JSONObject();
+        response.put("method", "change_phase");
+        response.put("time", Server.getCurrentPhase());
+        response.put("days", Server.getDays());
+        response.put("description", "");
+        for(Player p : players) {
+            send(p.getSocket(), response.toString());
+        }
     }
     
     private void send(Socket socket, String msg) {

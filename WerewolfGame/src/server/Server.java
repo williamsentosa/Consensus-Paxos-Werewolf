@@ -27,6 +27,8 @@ public class Server {
     private static int numberPlayerReadied = 0;
     public static final int MIN_PLAYERS = 3;
     private static boolean isGameStarted = false;
+    private static String currentPhase = "day";
+    private static int days = 0;
     
     public Server(int port, int timeout) {
         this.port = port;
@@ -65,7 +67,23 @@ public class Server {
     public static void changeGameStarted(boolean value) {
         isGameStarted = value;
     }
-            
+    
+    public static void changeCurrentPhase(String phase) {
+        currentPhase = phase;
+    }
+    
+    public static String getCurrentPhase() {
+        return currentPhase;
+    }
+    
+    public static void incrDays() {
+        days++;
+    }
+    
+    public static int getDays() {
+        return days;
+    }
+    
     public void run() {
         try {
             serverSocket = new ServerSocket(port);

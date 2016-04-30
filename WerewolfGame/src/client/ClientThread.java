@@ -87,9 +87,11 @@ public class ClientThread extends Observable implements Runnable {
         if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() < proposerId) {
             response.put("status", "ok");
             response.put("description", "accepted");
-            response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
-            parent.setPreviousAcceptedKpuId(proposalId);
-            parent.setPreviousProposerId(proposerId);
+            if (parent.getPreviousAcceptedKpuId() > 0) {
+                response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
+            }
+//            parent.setPreviousAcceptedKpuId(proposalId);
+//            parent.setPreviousProposerId(proposerId);
         } else {
             response.put("status", "fail");
             response.put("description", "rejected");

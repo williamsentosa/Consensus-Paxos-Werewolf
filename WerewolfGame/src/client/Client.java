@@ -39,13 +39,15 @@ public class Client {
     private DatagramSocket clientSocket;
     private int udpPort;
     private Thread clientThread;
+    private static final int MAX_RETRY = 10;
     private static final int UDP_BYTE_LENGTH = 1024;
     
     private Scanner scanner;
     private int playerId = -1;
-    private int previousAcceptedKpuId = -1;
+    private int previousAcceptedKpuId = 0;
     private int previousProposerId = -1;
     private static final int MAX_PROPOSER_COUNT = 2;
+    
     private ArrayList<String> friends;
     private String role;
     
@@ -125,8 +127,27 @@ public class Client {
             outputToClient = msg.getBytes();
             
             DatagramPacket sendPacket = new DatagramPacket(outputToClient, outputToClient.length, ipAddress, port);
-            UnreliableSender unreliableSender = new UnreliableSender(clientSocket);
-            unreliableSender.send(sendPacket);
+            clientSocket.send(sendPacket);
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public void sendToClient(String msg, String ipAddr, int port, boolean isUnreliable) {
+        try {
+            InetAddress ipAddress = InetAddress.getByName("localhost");
+            byte[] outputToClient = new byte[UDP_BYTE_LENGTH];;
+            outputToClient = msg.getBytes();
+            
+            DatagramPacket sendPacket = new DatagramPacket(outputToClient, outputToClient.length, ipAddress, port);
+            if (isUnreliable) {
+                UnreliableSender unreliableSender = new UnreliableSender(clientSocket);
+                unreliableSender.send(sendPacket);
+            } else {
+                clientSocket.send(sendPacket);
+            }
         } catch (UnknownHostException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -143,8 +164,32 @@ public class Client {
     
     public DatagramPacket clientSendAndReceive(String msg, String ipAddr, int port) {
         boolean isReceived = false;
-        while (!isReceived) {
+        int retryCount = 0;
+        while (!isReceived || retryCount < MAX_RETRY) {
             sendToClient(msg, ipAddr, port);
+            try {
+                DatagramPacket dp = receiveFromClient();
+                isReceived = true;
+                
+                return dp;
+            } catch (SocketTimeoutException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            retryCount++;
+        }
+        return null;
+    }
+    
+    
+    public DatagramPacket clientSendAndReceive(String msg, String ipAddr, int port, boolean isUnreliable) {
+        boolean isReceived = false;
+        int retryCount = 0;
+        
+        while (!isReceived || retryCount < MAX_RETRY) {
+            sendToClient(msg, ipAddr, port, isUnreliable);
+            
             try {
                 DatagramPacket dp = receiveFromClient();
                 isReceived = true;
@@ -401,7 +446,7 @@ public class Client {
             String address = client.getAddress();
             int port = client.getPort();
             
-            DatagramPacket dp = clientSendAndReceive(request.toString(), address, port);
+            DatagramPacket dp = clientSendAndReceive(request.toString(), address, port, true);
             String responseString = new String(dp.getData());
             JSONObject response = new JSONObject(responseString);
             String status = response.getString("status");
@@ -447,11 +492,11 @@ public class Client {
         
         request.put("method", "accept_proposal");
         request.put("proposal_id", proposalIdData);
-        request.put("kpu_id", previousAcceptedKpuId);
+        request.put("kpu_id", playerId);
         
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
-            DatagramPacket dp = clientSendAndReceive(request.toString(), player.getUdpAddress(), player.getPort());
+            DatagramPacket dp = clientSendAndReceive(request.toString(), player.getUdpAddress(), player.getPort(), true);
             String ipAddress = dp.getAddress().getHostAddress();
             
             String responseString = new String(dp.getData());

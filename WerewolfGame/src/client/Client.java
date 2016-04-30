@@ -17,11 +17,13 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import server.Player;
 
 /**
  *
@@ -160,11 +162,19 @@ public class Client {
                 case "join game" : joinCommand(); break;
                 case "leave game" : leaveCommand(); break;
                 case "ready up" : readyUpCommand(); break;
-                case "list client" : listClientCommand(); break;
                 case "prepare proposal" : paxosPrepareProposal(); break;
                 default: System.out.println("Invalid command");
             }
         }
+    }
+    
+    private Player findPlayer(int player_id, List<Player> Clients){
+        for(Player client : Clients){
+            if(client.getPlayerId() == player_id) {
+                return client;
+            }
+        }
+        return null;
     }
     
     private void joinCommand() {
@@ -276,12 +286,12 @@ public class Client {
     
     private void dayPhase() {
         chooseLeader();
-        killWerewolfVote();
+        //killWerewolfVote();
     }
     
     private void nightPhase() {
         if(role.compareTo("werewolf")  == 0) {
-            killCivilianVote();
+            //killCivilianVote();
         }
     }
     
@@ -289,24 +299,98 @@ public class Client {
         //
     }
     
-    private void killWerewolfVote() {
+    private void killWerewolfVote(int kpuId, int playerId) {
+        List<Player> clients = getListClient();
+        Player client = findPlayer(kpuId, clients);
+        JSONObject request = new JSONObject();
+        request.put("method", "vote_werewolf");
+        request.put("player_id", playerId);
         
+        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getAddress(), client.getPort());
+        String responseString = new String(dp.getData());
+        JSONObject response = new JSONObject(responseString);
+        String status = response.getString("status");
+        
+        switch(status){
+            case "ok": 
+                break;
+            case "fail":
+                break;
+            case "error":
+                break;
+        }
+    }
+    
+    private void infoWerewolfKilled() {
+        int kill = -1;
+         
+       //send to server
+        JSONObject request = new JSONObject();
+        if(kill==1) {
+            request.put("method", "vote_result_werewolf");
+            request.put("player_killed",99);
+            
+        }else {
+            request.put("method", "vote_result");
+        }
+        request.put("vote_status", kill);
+        request.put("vote_result", "()");
+        sendToServer(request.toString());
+        
+        try {
+            String input = inputFromServer.readUTF();
+            JSONObject response = new JSONObject(input);
+            String status = response.getString("status");
+            
+            switch(status){
+                case "ok":
+                    break;
+                case "fail":
+                    break;
+                case "error":
+                    break;
+            }
+            
+        }catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private void waitChangePhase() {
         
     }
     
-    private void killCivilianVote() {
+    private void killCivilianVote(int kpuId, int playerId) {
+        List<Player> clients = getListClient();
+        Player client = findPlayer(kpuId, clients);
+        JSONObject request = new JSONObject();
+        request.put("method", "vote_civilian");
+        request.put("player_id", playerId);
         
+        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getAddress(), client.getPort());
+        String responseString = new String(dp.getData());
+        JSONObject response = new JSONObject(responseString);
+        String status = response.getString("status");
+        
+        switch(status){
+            case "ok": 
+                System.out.println("Ok, " + response.getString("description") + ".");
+                break;
+            case "fail":
+                System.out.println("Failed, " + response.getString("description") + ".");
+                break;
+            case "error":
+                System.out.println("Error, " + response.getString("description") + ".");
+                break;
+        }
     }
     
-    JSONArray listClientCommand() {
+    private List<Player> getListClient() {
         JSONObject request = new JSONObject();
         request.put("method", "client_address");
         sendToServer(request.toString());
         
-        JSONArray returnValue = new JSONArray();
+        List<Player> returnValue = new ArrayList<Player>();
         try {
             String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
@@ -314,7 +398,17 @@ public class Client {
             switch (status) {
                 case "ok" : 
                     System.out.println(response.getJSONArray("clients"));
-                    return response.getJSONArray("clients");
+                    JSONArray lineClients = response.getJSONArray("clients");
+                    for (Object client : lineClients) {
+                        JSONObject jsonLineClient = (JSONObject) client;
+                        int playerId = jsonLineClient.getInt("player_id");
+                        int isAlive = jsonLineClient.getInt("is_alive");
+                        String address = jsonLineClient.getString("address");
+                        int port = jsonLineClient.getInt("port");
+                        String username = jsonLineClient.getString("username");
+                        
+                        returnValue.add(new Player(playerId, isAlive, address, port, username));
+                    }
                 case "fail" :
                     System.out.println("Failed, " + response.getString("description") + ".");
                     break;
@@ -339,25 +433,25 @@ public class Client {
         }
         
         int greaterPlayerIdCount = 0;
-        JSONArray clients = listClientCommand();
+        List<Player> clients = getListClient();
         
         // TODO: Does this quorum count really applies?
-        int quorumCount = clients.length() - 1;
+        int quorumCount = clients.size() - 1;
         
         String[] addresses = new String[quorumCount];
         int[] ports = new int[quorumCount];
         int c = 0;
         
         /* checks if client is a valid proposer: Yang bisa jadi proposer cuman pid dua terbesar (player ke n dan n-1) */
-        for (int i = 0; i < clients.length() && greaterPlayerIdCount < MAX_PROPOSER_COUNT; i++) {
-            JSONObject client = clients.getJSONObject(i);
-            if (client.getInt("player_id") != playerId) {
-                if (client.getInt("player_id") > playerId) {
+        for (int i = 0; i < clients.size() && greaterPlayerIdCount < MAX_PROPOSER_COUNT; i++) {
+            Player client = clients.get(i);
+            if (client.getPlayerId() != playerId) {
+                if (client.getPlayerId() > playerId) {
                     greaterPlayerIdCount++;
                 }
 
-                addresses[c] = (client.getString("address"));
-                ports[c] = (client.getInt("port"));
+                addresses[c] = (client.getAddress());
+                ports[c] = (client.getPort());
                 c++;
             }
         }

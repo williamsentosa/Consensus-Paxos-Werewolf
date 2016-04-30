@@ -10,6 +10,7 @@ import java.net.*;
 import java.util.Observable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -17,7 +18,7 @@ import org.json.JSONObject;
  *
  * @author natanelia
  */
-public class ClientThread implements Runnable {
+public class ClientThread extends Observable implements Runnable {
     private Client parent;
     private String lastResponse = "";
     private String lastRequest = "";
@@ -54,7 +55,12 @@ public class ClientThread implements Runnable {
                 String method = request.getString("method");
                 switch (method) {
                     case "prepare_proposal":
-                        prepareProposalHandler(request.getString("proposal_id"), ipAddress, port);
+                        prepareProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                        break;
+                    case "accept_proposal":
+                        acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                        parent.clientAcceptProposal();
+                        parent.killWerewolfVote();
                         break;
                 }
             } catch (JSONException ex) {
@@ -73,18 +79,17 @@ public class ClientThread implements Runnable {
         parent.sendToClient(response.toString(), ipAddress, port);
     }
 
-    private void prepareProposalHandler(String in, String ipAddress, int port) {
-        in = in.substring(1, in.length() - 1);
-        String[] data = in.split(", ");
-        int proposalId = Integer.parseInt(data[0]);
-        int playerId = Integer.parseInt(data[1]);
+    private void prepareProposalHandler(JSONArray proposalIdData, String ipAddress, int port) {
+        int proposalId = proposalIdData.getInt(0);
+        int proposerId = proposalIdData.getInt(1);
         
         JSONObject response = new JSONObject();
-        if (parent.getPreviousAcceptedKpuId() <= proposalId) {
+        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() < proposerId) {
             response.put("status", "ok");
             response.put("description", "accepted");
             response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
             parent.setPreviousAcceptedKpuId(proposalId);
+            parent.setPreviousProposerId(proposerId);
         } else {
             response.put("status", "fail");
             response.put("description", "rejected");
@@ -94,5 +99,23 @@ public class ClientThread implements Runnable {
         parent.sendToClient(lastResponse, ipAddress, port);
     }
     
+    private void acceptProposalHandler(JSONArray proposalIdData, String ipAddress, int port) {
+        int proposalId = proposalIdData.getInt(0);
+        int proposerId = proposalIdData.getInt(1);
+        
+        JSONObject response = new JSONObject();
+        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() < proposerId) {
+            response.put("status", "ok");
+            response.put("description", "accepted");
+            parent.setPreviousAcceptedKpuId(proposalId);
+            parent.setPreviousProposerId(proposerId);
+        } else {
+            response.put("status", "fail");
+            response.put("description", "rejected");
+        }
+        
+        lastResponse = response.toString();
+        parent.sendToClient(lastResponse, ipAddress, port);
+    }
     
 }

@@ -27,6 +27,7 @@ public class Server {
     private static int numberPlayerReadied = 0;
     public static final int MIN_PLAYERS = 3;
     private static boolean isGameStarted = false;
+    private int currentLeaderId = -1;
     
     public Server(int port, int timeout) {
         this.port = port;
@@ -65,6 +66,14 @@ public class Server {
     public static void changeGameStarted(boolean value) {
         isGameStarted = value;
     }
+
+    public int getCurrentLeaderId() {
+        return currentLeaderId;
+    }
+
+    public void setCurrentLeaderId(int currentLeaderId) {
+        this.currentLeaderId = currentLeaderId;
+    }
             
     public void run() {
         try {
@@ -72,7 +81,7 @@ public class Server {
             serverSocket.setSoTimeout(timeout);
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                new Thread(new ServerThread(clientSocket, players)).start();
+                new Thread(new ServerThread(clientSocket, players, this)).start();
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);

@@ -17,11 +17,13 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import server.Player;
 
 /**
  *
@@ -42,6 +44,7 @@ public class Client {
     private Scanner scanner;
     private int playerId = -1;
     private int previousAcceptedKpuId = -1;
+    private int previousProposerId = -1;
     private static final int MAX_PROPOSER_COUNT = 2;
     private ArrayList<String> friends;
     private String role;
@@ -69,6 +72,14 @@ public class Client {
     public void setPreviousAcceptedKpuId(int previousAcceptedKpuId) {
         this.previousAcceptedKpuId = previousAcceptedKpuId;
     }
+
+    public int getPreviousProposerId() {
+        return previousProposerId;
+    }
+
+    public void setPreviousProposerId(int previousProposerId) {
+        this.previousProposerId = previousProposerId;
+    }    
     
     public void createServer(int port, int timeout) {
         this.udpPort = port;
@@ -76,8 +87,7 @@ public class Client {
             clientSocket = new DatagramSocket(this.udpPort);
             clientSocket.setSoTimeout(timeout);
             
-            clientThread = new Thread(new ClientThread(this));
-            clientThread.start();
+            startClientThread();
             
             System.out.println("Client listening on port " + this.udpPort);
         } catch (SocketException ex) {
@@ -161,7 +171,6 @@ public class Client {
                 case "leave game" : leaveCommand(); break;
                 case "ready up" : readyUpCommand(); break;
                 case "list client" : listClientCommand(); break;
-                case "prepare proposal" : paxosPrepareProposal(); break;
                 default: System.out.println("Invalid command");
             }
         }
@@ -276,7 +285,10 @@ public class Client {
     
     private void dayPhase() {
         chooseLeader();
-        killWerewolfVote();
+        // --> paxosPrepareProposal
+        // --> paxosAcceptProposal
+        // clientAcceptProposal  --> called in ClientThread
+        // killWerewolfVote      --> called in ClientThread
     }
     
     private void nightPhase() {
@@ -286,10 +298,15 @@ public class Client {
     }
     
     private void chooseLeader() {
-        //
+        List<Player> players = listClientCommand();
+        if (isLeader()) {
+            if (paxosPrepareProposal(players) == 1) {
+                paxosAcceptProposal(players);
+            }
+        }
     }
     
-    private void killWerewolfVote() {
+    public void killWerewolfVote() {
         
     }
     
@@ -301,82 +318,90 @@ public class Client {
         
     }
     
-    JSONArray listClientCommand() {
-        JSONObject request = new JSONObject();
-        request.put("method", "client_address");
-        sendToServer(request.toString());
-        
-        JSONArray returnValue = new JSONArray();
-        try {
-            String input = inputFromServer.readUTF();
-            JSONObject response = new JSONObject(input);
-            String status = response.getString("status");
-            switch (status) {
-                case "ok" : 
-                    System.out.println(response.getJSONArray("clients"));
-                    return response.getJSONArray("clients");
-                case "fail" :
-                    System.out.println("Failed, " + response.getString("description") + ".");
-                    break;
-                case "error" :
-                    System.out.println("Failed, " + response.getString("description") + ".");
-                    break;
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return returnValue;
+    List<Player> listClientCommand() {
+        return new ArrayList<>();
     }
     
-    private void paxosPrepareProposal() {
-        clientThread.interrupt();
-        while (clientThread.isAlive()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+//    JSONArray listClientCommand() {
+//        JSONObject request = new JSONObject();
+//        request.put("method", "client_address");
+//        sendToServer(request.toString());
+//        
+//        JSONArray returnValue = new JSONArray();
+//        try {
+//            String input = inputFromServer.readUTF();
+//            JSONObject response = new JSONObject(input);
+//            String status = response.getString("status");
+//            switch (status) {
+//                case "ok" : 
+//                    System.out.println(response.getJSONArray("clients"));
+//                    return response.getJSONArray("clients");
+//                case "fail" :
+//                    System.out.println("Failed, " + response.getString("description") + ".");
+//                    break;
+//                case "error" :
+//                    System.out.println("Failed, " + response.getString("description") + ".");
+//                    break;
+//            }
+//        } catch (IOException ex) {
+//            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//        return returnValue;
+//    }
+    
+    private boolean isLeader() {
+        boolean isLeader;
+        
+        List<Player> players = listClientCommand();
         
         int greaterPlayerIdCount = 0;
-        JSONArray clients = listClientCommand();
+        int quorumCount = players.size() - 1;
         
-        // TODO: Does this quorum count really applies?
-        int quorumCount = clients.length() - 1;
-        
-        String[] addresses = new String[quorumCount];
-        int[] ports = new int[quorumCount];
         int c = 0;
         
         /* checks if client is a valid proposer: Yang bisa jadi proposer cuman pid dua terbesar (player ke n dan n-1) */
-        for (int i = 0; i < clients.length() && greaterPlayerIdCount < MAX_PROPOSER_COUNT; i++) {
-            JSONObject client = clients.getJSONObject(i);
-            if (client.getInt("player_id") != playerId) {
-                if (client.getInt("player_id") > playerId) {
+        for (int i = 0; i < players.size() && greaterPlayerIdCount < MAX_PROPOSER_COUNT; i++) {
+            Player player = players.get(i);
+            if (player.getPlayerId() != playerId) {
+                if (player.getPlayerId() > playerId) {
                     greaterPlayerIdCount++;
                 }
-
-                addresses[c] = (client.getString("address"));
-                ports[c] = (client.getInt("port"));
+                
                 c++;
             }
         }
         
         if (greaterPlayerIdCount >= MAX_PROPOSER_COUNT) {
-            System.err.println("You are unable to be a proposer");
-            return;
+            isLeader = false;
+        } else {
+            isLeader = true;
         }
         
+        return isLeader;
+    }
+    
+    private int paxosPrepareProposal(List<Player> players) {
+        // stopClientThread();
+        
+        int returnValue = -1;
         
         /* send request */
         // TODO: proposal_id is waiting perfect specification
         JSONObject request = new JSONObject();
+        JSONArray proposalIdData = new JSONArray();
+        proposalIdData.put(++previousAcceptedKpuId);
+        proposalIdData.put(playerId);
         request.put("method", "prepare_proposal");
-        request.put("proposal_id", "(" + (++previousAcceptedKpuId) + ", " + playerId + ")");
+        request.put("proposal_id", proposalIdData);
         
         int latestAcceptedKpuId = -1;
-        for (int i = 0; i < addresses.length; i++) {
-            DatagramPacket dp = clientSendAndReceive(request.toString(), addresses[i], ports[i]);
+        for (int i = 0; i < players.size(); i++) {
+            
+            Player client = players.get(i);
+            String address = client.getAddress();
+            int port = client.getPort();
+            
+            DatagramPacket dp = clientSendAndReceive(request.toString(), address, port);
             String responseString = new String(dp.getData());
             JSONObject response = new JSONObject(responseString);
             String status = response.getString("status");
@@ -386,29 +411,125 @@ public class Client {
                     int prevAcceptedKpuId = response.getInt("previous_accepted");
                     System.out.println("Accepted, " + prevAcceptedKpuId);
 
-                    if (latestAcceptedKpuId < prevAcceptedKpuId) {
-                        prevAcceptedKpuId = latestAcceptedKpuId;
+                    if (prevAcceptedKpuId > latestAcceptedKpuId) {
+                        latestAcceptedKpuId = prevAcceptedKpuId;
                     }
-
+                    
+                    previousAcceptedKpuId = latestAcceptedKpuId;
+                    returnValue = 1;
                     break;
                 case "fail":
                     System.out.println("Failed, " + response.get("description"));
+                    returnValue = 0;
                     break;
                 case "error":
                     System.out.println("Error, " + response.get("description"));
+                    returnValue = -1;
                     break;
             }
         }
         
+        // startClientThread();
+        return returnValue;
+    }
+    
+    private int paxosAcceptProposal(List<Player> players) {
+        // stopClientThread();
+        
+        int returnValue = -1;
+        
+        /* send request */
+        // TODO: proposal_id is waiting perfect specification
+        JSONObject request = new JSONObject();
+        JSONArray proposalIdData = new JSONArray();
+        proposalIdData.put(++previousAcceptedKpuId);
+        proposalIdData.put(playerId);
+        
+        request.put("method", "accept_proposal");
+        request.put("proposal_id", proposalIdData);
+        request.put("kpu_id", previousAcceptedKpuId);
+        
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            DatagramPacket dp = clientSendAndReceive(request.toString(), player.getUdpAddress(), player.getPort());
+            String ipAddress = dp.getAddress().getHostAddress();
+            
+            String responseString = new String(dp.getData());
+            JSONObject response = new JSONObject(responseString);
+            String status = response.getString("status");
+
+            switch (status) {
+                case "ok":
+                    System.out.println(ipAddress + ": " + "Accepted");
+                    returnValue = 1;
+                    break;
+                case "fail":
+                    System.out.println(ipAddress + ": " + "Failed, " + response.get("description"));
+                    returnValue = 0;
+                    break;
+                case "error":
+                    System.out.println(ipAddress + ": " + "Error, " + response.get("description"));
+                    returnValue = -1;
+                    break;
+            }
+        }
+        
+        // startClientThread();
+        return returnValue;
+    }
+    
+    public void clientAcceptProposal() {
+        JSONObject request = new JSONObject();        
+        request.put("method", "prepare_proposal");
+        request.put("kpu_id", previousProposerId);
+        request.put("description", "kpu is selected");
+        
+        sendToServer(request.toString());
+        
+        try {
+            String input = inputFromServer.readUTF();
+            JSONObject response = new JSONObject(input);
+            String status = response.getString("status");
+            switch (status) {
+                case "ok" : 
+                    System.out.println("Leader vote accepted.");
+                    break;
+                case "fail" :
+                    System.out.println("Failed, " + response.getString("description") + ".");
+                    break;
+                case "error" :
+                    System.out.println("Error, " + response.getString("description") + ".");
+                    break;
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        // TODO: broadcast to all players?
+    }
+    
+    private void startClientThread() {
         clientThread = new Thread(new ClientThread(this));
         clientThread.start();
+    }
+    
+    
+    private void stopClientThread() {
+        clientThread.interrupt();
+        while (clientThread.isAlive()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
     
     public static void main(String args[]) {
         Scanner in = new Scanner(System.in);
         String serverIpAddress = "127.0.0.1";
         int serverPort = 8080;
-        System.out.print("Input yout port : ");
+        System.out.print("Input your port : ");
         int myPort = in.nextInt();
         int timeout = 1 * 1000; // 5 seconds
         Client client = new Client(serverIpAddress, serverPort, myPort, timeout);

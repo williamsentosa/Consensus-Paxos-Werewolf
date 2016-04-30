@@ -27,10 +27,12 @@ public class ServerThread implements Runnable {
     private DataInputStream in;
     private ArrayList<Player> players;
     private Player player;
+    private Server parent;
     
-    public ServerThread(Socket clientSocket, ArrayList<Player> players) {
+    public ServerThread(Socket clientSocket, ArrayList<Player> players, Server server) {
         this.clientSocket = clientSocket;
         this.players = players;
+        this.parent = server;
         try {
             out = new DataOutputStream(clientSocket.getOutputStream());
             in = new DataInputStream(clientSocket.getInputStream());
@@ -201,6 +203,14 @@ public class ServerThread implements Runnable {
         response.put("clients", arr);
         response.put("description", "list of clients retrieved");
         send(response.toString());
+    }
+    
+    private void clientAcceptProposalHandler(int leaderId) {
+        parent.setCurrentLeaderId(leaderId);
+        
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
     }
     
     private void send(Socket socket, String msg) {

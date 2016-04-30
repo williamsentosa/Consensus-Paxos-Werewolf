@@ -71,6 +71,7 @@ public class ServerThread implements Runnable {
                 case "leave" : leaveHandler(); break;
                 case "ready" : readyUpHandler(); break;
                 case "client_address" : listClientHandler(); break;
+                case "prepare_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
             }
         } catch (JSONException ex) {
             errorHandler();
@@ -205,12 +206,21 @@ public class ServerThread implements Runnable {
         send(response.toString());
     }
     
-    private void clientAcceptProposalHandler(int leaderId) {
-        parent.setCurrentLeaderId(leaderId);
+    private void clientAcceptProposalHandler(int votedLeaderId) {
+        // parent.leaderVotes is cleared before receiving any clientAcceptProposal (7. prepare_proposal).
+        if (parent.getLeaderVotes().size() == players.size()) {
+            parent.getLeaderVotes().clear();
+        }
+        
+        parent.getLeaderVotes().add(votedLeaderId);
         
         JSONObject response = new JSONObject();
         response.put("status", "ok");
         response.put("description", "");
+        
+        if (parent.getLeaderVotes().size() == players.size()) {
+            parent.processLeaderVotes();
+        }
     }
     
     private void send(Socket socket, String msg) {

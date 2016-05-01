@@ -16,6 +16,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -117,6 +118,7 @@ public class Client {
 
     public void sendToServer(String msg) {
         try {
+            System.out.println("sendToServer(): " + msg);
             outputToServer.writeUTF(msg);
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
@@ -403,6 +405,7 @@ public class Client {
                 case "kpu_selected":
                     setCurrentLeaderId(response.getInt("kpu_id"));
                     waitResponseFromServer();
+                    break;
                 case "vote_now":
                     String phase = response.getString("phase");
                     if (phase.equals("day")) {
@@ -411,8 +414,15 @@ public class Client {
                         System.out.print("Input username yang ingin dibunuh : ");
                         String username = scanner.nextLine();
                         int kpuId = getCurrentLeaderId();
-                        System.out.println("KPU ID : ");
+//                        if (kpuId == playerId) {
+//                            initWaitForResponses("killWerewolfVote", copyListPlayer(players), "");
+//                        }
+                        
                         killWerewolfVote(kpuId, username);
+                        
+//                        if (kpuId == playerId) {
+//                            waitForResponses();
+//                        }
                     } else {
                         System.out.println("*** Kill Civilian ***");
                         System.out.print("Input username yang ingin dibunuh : ");
@@ -460,7 +470,7 @@ public class Client {
     }
 
     public void killWerewolfVote(int kpuId, String username) {
-        int playerId;
+        int playerId = -1;
         Player client = this.findPlayer(kpuId, players);
         for (Player p : players) {
             if (p.getUsername().compareTo(username) == 0) {
@@ -469,59 +479,54 @@ public class Client {
         }
         JSONObject request = new JSONObject();
         request.put("method", "vote_werewolf");
-        request.put("player_id", client.getPlayerId());
+        request.put("player_id", playerId);
 
-        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getUdpAddress(), client.getUdpPort());
-        String responseString = new String(dp.getData());
-        JSONObject response = new JSONObject(responseString);
-        String status = response.getString("status");
-
-        switch (status) {
-            case "ok":
-                break;
-            case "fail":
-                break;
-            case "error":
-                break;
-        }
+        sendToClient(request.toString(), client.getUdpAddress(), client.getUdpPort());
     }
 
-    private void infoWerewolfKilled() {
+    private void infoWerewolfKilled(HashMap<Integer, Integer> voteMap) {
         int kill = -1;
         List<Player> player = numberAlive();
-        for (int i = 0; i < numberAlive().size(); i++) {
-
+        
+        System.out.println("infoWerewolfKilled(): " + voteMap.toString());
+        
+        int majority = majorityVote(voteMap);
+        int[][] voteResult = new int[players.size()][2];
+        for(int j=0; j<players.size(); j++) {
+            int playerId = players.get(j).getPlayerId();
+            voteResult[j][0] = playerId;
+            if (voteMap.containsKey(playerId)) {
+                voteResult[j][1] = voteMap.get(playerId);
+            } else {
+                voteResult[j][1] = 0;
+            }
         }
+        int quorum = player.size()/2 ;
+        if(voteMap.get(majority) > quorum)
+            kill=1;
         //send to server
         JSONObject request = new JSONObject();
-        if (kill == 1) {
+        if(kill==1) {
             request.put("method", "vote_result_werewolf");
-            request.put("player_killed", 99);
-
-        } else {
+            request.put("player_killed", majority);
+        }else {
             request.put("method", "vote_result");
         }
         request.put("vote_status", kill);
-        request.put("vote_result", "()");
+        request.put("vote_result", voteResult);
         sendToServer(request.toString());
-
-        try {
-            String input = inputFromServer.readUTF();
-            JSONObject response = new JSONObject(input);
-            String status = response.getString("status");
-
-            switch (status) {
-                case "ok":
-                    break;
-                case "fail":
-                    break;
-                case "error":
-                    break;
+    }
+    
+    private int majorityVote(HashMap<Integer, Integer> vote){
+        int maxId=-1;
+        int max=0;
+        for(int i=0; i<players.size(); i++){
+            if(vote.containsKey(i) && (max < vote.get(i))){
+                max = vote.get(i);
+                maxId= i;
             }
-
-        } catch (IOException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return maxId;
     }
 
     private void killCivilianVote(int kpuId, String username) {
@@ -847,6 +852,29 @@ public class Client {
 
     private int getCurrentLeaderId() {
         return currentLeaderId;
+    }
+    
+    private int voteWerewolfCount = 0;
+    private HashMap<Integer, Integer> votedWerewolves = new HashMap<>();
+    public void voteWerewolf(int playerId) {
+        if (voteWerewolfCount == players.size()) {
+            votedWerewolves.clear();
+            voteWerewolfCount = 0;
+        }
+        
+        // bila kosong
+        if (votedWerewolves.containsKey(playerId)) {
+            votedWerewolves.put(playerId, votedWerewolves.get(playerId)+1);
+        } else {
+            votedWerewolves.put(playerId,1);
+        }
+        voteWerewolfCount++;
+        
+        System.out.println(voteWerewolfCount + " " + players.size());
+        if (voteWerewolfCount == players.size()) {
+            // lakukan sesuatu untuk memproses voting
+            infoWerewolfKilled(votedWerewolves);
+        }
     }
 
     public static void main(String args[]) {

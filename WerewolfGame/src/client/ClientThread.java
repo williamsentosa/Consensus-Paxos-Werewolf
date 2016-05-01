@@ -51,7 +51,9 @@ public class ClientThread extends Observable implements Runnable {
         
         JSONObject request = new JSONObject(in);
         if (request.has("method")) {
-            if (!lastRequest.equals(in)) {
+            if (!lastRequest.equals(in)
+                    || (!request.getString("method").equals("accept_proposal")
+                    && !request.getString("method").equals("prepare_proposal"))) {
                 lastRequest = in;
                 // it is really a request
                 try {
@@ -63,6 +65,9 @@ public class ClientThread extends Observable implements Runnable {
                         case "accept_proposal":
                             acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
                             parent.clientAcceptProposal();
+                            break;
+                        case "vote_werewolf":
+                            voteWerewolfHandler(request.getInt("player_id"), ipAddress, port);
                             break;
                     }
                 } catch (JSONException ex) {
@@ -130,6 +135,16 @@ public class ClientThread extends Observable implements Runnable {
             response.put("description", "rejected");
         }
         
+        lastResponse = response.toString();
+        parent.sendToClient(lastResponse, ipAddress, port);
+    }
+    
+    private void voteWerewolfHandler(int playerId, String ipAddress, int port) {
+        parent.voteWerewolf(playerId);
+        
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
         lastResponse = response.toString();
         parent.sendToClient(lastResponse, ipAddress, port);
     }

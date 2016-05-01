@@ -77,7 +77,7 @@ public class ServerThread implements Runnable {
                     case "client_address" : listClientHandler(); break;
                     case "accepted_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
                     case "vote_result_civilian" : voteResultCivilianHandler(request); break;
-                    case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
+                    case "vote_result_werewolf" : voteResultWerewolfHandler(request); break;
                 }
             } catch (JSONException ex) {
                 errorHandler();
@@ -318,6 +318,7 @@ public class ServerThread implements Runnable {
     }
     
     private void voteResultWerewolfHandler(JSONObject request) {
+        System.out.println("voteResultWerewolfHandler(): " + request.toString());
         int playerKilled;
         if(request.getInt("vote_status") == 1) {
             playerKilled = request.getInt("player_killed");
@@ -336,7 +337,7 @@ public class ServerThread implements Runnable {
         if(request.getInt("vote_status") == -1) {
             voteNow();
         } else if(request.getInt("vote_status") == 1) {
-            changePhase("day");
+            changePhase("night");
         }
     }
     

@@ -33,7 +33,6 @@ public class Server {
     private ArrayList<Integer> leaderVotes;
     private static String currentPhase = "day";
     private static int days = 0;
-    public static boolean gameIsStarted = false;
     
     public Server(int port, int timeout) {
         this.port = port;
@@ -104,31 +103,6 @@ public class Server {
     
     public void setLeaderVotes(ArrayList<Integer> leaderVotes) {
         this.leaderVotes = leaderVotes;
-    }
-    
-    public void processLeaderVotes() {
-        Map<Integer, Integer> voteMap = new HashMap<>();
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
-            voteMap.put(player.getPlayerId(), 0);
-        }
-        
-        for (int i = 0; i < leaderVotes.size(); i++) {
-            int votedLeader = leaderVotes.get(i);
-            voteMap.put(votedLeader, voteMap.get(votedLeader).intValue() + 1);
-        }
-        
-        int chosenLeaderId = -1;
-        int maxVoteCount = -1;
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
-            
-            int voteCount = voteMap.get(player.getPlayerId());
-            if (voteCount > maxVoteCount) {
-                maxVoteCount = voteCount;
-                chosenLeaderId = player.getPlayerId();
-            }
-        }
     }
             
     public void run() {

@@ -49,6 +49,22 @@ public class ClientThread extends Observable implements Runnable {
         String in = new String(dp.getData());
         System.out.println("requestHandler():" + in);
         
+<<<<<<< HEAD
+        if (!lastRequest.equalsIgnoreCase(in)) {
+            lastRequest = in;
+            System.out.println(in);
+            JSONObject request = new JSONObject(in);
+            try {
+                String method = request.getString("method");
+                switch (method) {
+                    case "prepare_proposal":
+                        prepareProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                        break;
+                    case "accept_proposal":
+                        acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                        parent.clientAcceptProposal();
+                        break;
+=======
         JSONObject request = new JSONObject(in);
         if (request.has("method")) {
             if (!lastRequest.equals(in)) {
@@ -68,6 +84,7 @@ public class ClientThread extends Observable implements Runnable {
                 } catch (JSONException ex) {
                     Logger.getLogger(Client.class.getName()).log(Level.WARNING, "requestHandler(): ERROR " + request.toString(), ex);
                     errorHandler(ipAddress, port);
+>>>>>>> integrate_paxos
                 }
             } else {
                 /* resend packet */

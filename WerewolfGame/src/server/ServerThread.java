@@ -5,15 +5,14 @@
  */
 package server;
 
-import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import static java.lang.Thread.sleep;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
@@ -32,10 +31,6 @@ public class ServerThread implements Runnable {
     private Player player;
     private Server parent;
     private static int countVote = 0;
-    private static int leaderId;
-    private static boolean isGameOver = false;
-    private Semaphore mutex = new Semaphore(1,true);
-    
     
     public ServerThread(Socket clientSocket, ArrayList<Player> players, Server server) {
         this.clientSocket = clientSocket;
@@ -64,30 +59,35 @@ public class ServerThread implements Runnable {
                 player = null;
                 if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
                     startGame();
-                    //voteNow();
                 }
             }
         }   
     }
     
     private void requestHandler(String in) {
-        if(player != null) {
-            System.out.println("Thread-" + player.getPlayerId() + " : " + in);
-        } else System.out.println("in");
+        System.out.println(in);
         JSONObject request = new JSONObject(in);
-        try {
-            String method = request.getString("method");
-            switch (method) {
-                case "join" : joinHandler(request.getString("username"), request.getString("udp_address"), request.getInt("udp_port")); break;
-                case "leave" : leaveHandler(); break;
-                case "ready" : readyUpHandler(); break;
-                case "client_address" : listClientHandler(); break;
-                case "prepare_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
-                case "vote_result_civilian" : voteResultCivilianHandler(request); break;
-                case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
+        if (request.has("method")) {
+            try {
+                String method = request.getString("method");
+                switch (method) {
+                    case "join" : joinHandler(request.getString("username"), request.getString("udp_address"), request.getInt("udp_port")); break;
+                    case "leave" : leaveHandler(); break;
+                    case "ready" : readyUpHandler(); break;
+                    case "client_address" : listClientHandler(); break;
+                    case "accepted_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
+                    case "vote_result_civilian" : voteResultCivilianHandler(request); break;
+                    case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
+                }
+            } catch (JSONException ex) {
+                errorHandler();
             }
-        } catch (JSONException ex) {
-            errorHandler();
+        } else if (request.has("status")) {
+//            try {
+//                
+//            } catch (JSONException ex) {
+//                Logger.getLogger(ServerThread.class.getName()).log(Level.INFO, "Unknown Protocol");
+//            }
         }
     }
     
@@ -162,95 +162,39 @@ public class ServerThread implements Runnable {
             response.put("description", "waiting for other player to start");
         }
         send(response.toString());
-        System.out.println("Testing 1");
         if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
-            System.out.println("Testing x");
             startGame();
         }
-        System.out.println("Testing 2");
-        System.out.println("game is started : " + Server.gameIsStarted);
-        while(!Server.gameIsStarted) {
-            try {
-                sleep(200);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        System.out.println("Unlocking..");
-        startGame();
     }
     
     private void startGame() {
-        if(!Server.gameIsStarted) {
-            System.out.println("broadcasting...");
-            System.out.println("broadcasting success");
-            int firstWolf = 0 + (int)(Math.random() * players.size());
-            int secondWolf = 0 + (int)(Math.random() * players.size());
-            while (secondWolf == firstWolf) {
-                secondWolf = 0 + (int)(Math.random() * players.size());
-            }
-            for(int i=0; i<players.size(); i++) {
-                players.get(i).setAlive();
-                JSONObject response = new JSONObject();
-                response.put("method", "start");
-                response.put("time", "day");
-                if(i != firstWolf && i != secondWolf) {
-                    response.put("role", "civilian");
-                    JSONArray arr = new JSONArray();
-                    response.put("friend", arr);
-                    players.get(i).setRole("civilian");
-                } else {
-                    response.put("role", "werewolf");
-                    JSONArray arr = new JSONArray();
-                    arr.put(players.get(firstWolf).getUsername());
-                    arr.put(players.get(secondWolf).getUsername());
-                    response.put("friend", arr);
-                    players.get(i).setRole("werewolf");
-                }
-                response.put("description", "game has started");
-                send(players.get(i).getSocket(), response.toString());
-            }
-            System.out.println("Broadcasting finished");
-            Server.gameIsStarted = true;
-            System.out.println("Game is started : " + Server.gameIsStarted);
+        int firstWolf = 0 + (int)(Math.random() * players.size()); 
+        int secondWolf = 0 + (int)(Math.random() * players.size());
+        while (secondWolf == firstWolf) {
+            secondWolf = 0 + (int)(Math.random() * players.size());
         }
-        isGameOver = false;
-        while(!isGameOver) {
-            System.out.println("Entering Phase");
-            dayPhase();
-            nightPhase();
-        }
-    }
-    
-    private void dayPhase() {
-        System.out.println("Jumlah Player : " + players.size());
-        waitForRequest();
-        voteNow();
-        leaderId = players.get(players.size() - 1).getPlayerId();
-        if(player.getPlayerId() == leaderId) {
-            waitForRequest();
-        }
-    }
-    
-    private void nightPhase() {
         for(int i=0; i<players.size(); i++) {
-            waitForRequest();
+            players.get(i).setAlive();
+            JSONObject response = new JSONObject();
+            response.put("method", "start");
+            response.put("time", "day");
+            if(i != firstWolf && i != secondWolf) {
+                response.put("role", "civilian");
+                JSONArray arr = new JSONArray();
+                response.put("friend", arr);
+                players.get(i).setRole("civilian");
+            } else {
+                response.put("role", "werewolf");
+                JSONArray arr = new JSONArray();
+                arr.put(players.get(firstWolf).getUsername());
+                arr.put(players.get(secondWolf).getUsername());
+                response.put("friend", arr);
+                players.get(i).setRole("werewolf");
+            }
+            response.put("description", "game has started");
+            send(players.get(i).getSocket(), response.toString());
         }
-        voteNow();
-        leaderId = players.get(players.size() - 1).getPlayerId();
-        if(player.getPlayerId() == leaderId) {
-            waitForRequest();
-        }
-    }
-    
-    private void waitForRequest() {
-        try {
-            String input = in.readUTF();
-            System.out.println(input);
-            requestHandler(input);
-        } catch (IOException ex) {
-            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
-        }
+//        voteNow();
     }
     
     private void listClientHandler() {
@@ -286,9 +230,60 @@ public class ServerThread implements Runnable {
         response.put("status", "ok");
         response.put("description", "");
         
+        send(response.toString());
+        
         if (parent.getLeaderVotes().size() == players.size()) {
-            parent.processLeaderVotes();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            int chosenLeaderId = processLeaderVotes();
+            kpuSelected(chosenLeaderId);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
             voteNow();
+        }
+    }
+    
+    public int processLeaderVotes() {
+        Map<Integer, Integer> voteMap = new HashMap<>();
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            voteMap.put(player.getPlayerId(), 0);
+        }
+        
+        for (int i = 0; i < parent.getLeaderVotes().size(); i++) {
+            int votedLeader = parent.getLeaderVotes().get(i);
+            voteMap.put(votedLeader, voteMap.get(votedLeader) + 1);
+        }
+        
+        int chosenLeaderId = -1;
+        int maxVoteCount = -1;
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            
+            int voteCount = voteMap.get(player.getPlayerId());
+            if (voteCount > maxVoteCount) {
+                maxVoteCount = voteCount;
+                chosenLeaderId = player.getPlayerId();
+            }
+        }
+        System.out.println("The leader according to server is player_id " + chosenLeaderId);
+        return chosenLeaderId;
+    }
+    
+    public void kpuSelected(int leaderId) {
+        JSONObject response = new JSONObject();
+        response.put("method", "kpu_selected");
+        response.put("kpu_id", leaderId);
+        
+        for (Player p : players) {
+            send(p.getSocket(), response.toString());
         }
     }
     
@@ -347,16 +342,17 @@ public class ServerThread implements Runnable {
     
     private void voteNow() {
         JSONObject response = new JSONObject();
-        System.out.println("vote now");
         response.put("method", "vote_now");
         response.put("phase", Server.getCurrentPhase());
         if(Server.getCurrentPhase().compareTo("day") == 0) {
-            if(player.isAlive()) {
-                send(player.getSocket(), response.toString());
+            for(Player p : players) {
+                send(p.getSocket(), response.toString());
             }
         } else if(Server.getCurrentPhase().compareTo("night") == 0) {
-            if(player.isAlive() && (player.getRole().compareTo("werewolf") == 0)) {
-                send(player.getSocket(), response.toString());
+            for(Player p : players) {
+                if(p.getRole().compareTo("werewolf") == 0) {
+                    send(p.getSocket(), response.toString());
+                }
             }
         }
     }
@@ -376,7 +372,7 @@ public class ServerThread implements Runnable {
         }
     }
     
-    public void send(Socket socket, String msg) {
+    private void send(Socket socket, String msg) {
         try {
             DataOutputStream os = new DataOutputStream(socket.getOutputStream());
             os.writeUTF(msg);
@@ -385,7 +381,7 @@ public class ServerThread implements Runnable {
         }
     }
     
-    public void send(String msg) {
+    private void send(String msg) {
         try {
             out.writeUTF(msg);
         } catch (IOException ex) {
@@ -395,7 +391,6 @@ public class ServerThread implements Runnable {
     
     private void gameOver(String winner) {
         Server.changeGameStarted(false);
-        isGameOver = true;
         for(Player p : players) {
             JSONObject response = new JSONObject();
             response.put("method", "game_over");

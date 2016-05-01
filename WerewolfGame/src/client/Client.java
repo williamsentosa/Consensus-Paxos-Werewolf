@@ -21,6 +21,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import server.Player;
 
@@ -39,7 +40,7 @@ public class Client {
     private DatagramSocket clientSocket;
     private int udpPort;
     private Thread clientThread;
-    private static final int MAX_RETRY = 10;
+    private static final int MAX_RETRY = 4;
     private static final int UDP_BYTE_LENGTH = 1024;
 
     private Scanner scanner;
@@ -51,6 +52,7 @@ public class Client {
     private ArrayList<String> friends;
     private String role;
     private ArrayList<Player> players;
+    private int currentLeaderId = -1;
 
     public Client() {
         scanner = new Scanner(System.in);
@@ -371,9 +373,12 @@ public class Client {
         System.out.println("waitResponseFromServer()");
         try {
             String input = inputFromServer.readUTF();
-            System.out.println("I'm Blocking");
             JSONObject response = new JSONObject(input);
-            responseHandler(response);
+            if (response.has("method")) {
+                responseHandler(response);
+            } else if (response.has("status")) {
+                receiveAcceptedKpuId(response);
+            }
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -386,32 +391,44 @@ public class Client {
     }
 
     private void responseHandler(JSONObject response) {
-        String method = response.getString("method");
-        switch (method) {
-            case "change_phase":
-                changePhase(response);
-                break;
-            case "game_over":
-                gameOver(response);
-                break;
-            case "vote_now":
-                String phase = response.getString("phase");
-                if (phase.equals("day")) {
-                    System.out.println("*** Kill Werewolf ***");
-                    showAvailablePlayer();
-                    System.out.print("Input username yang ingin dibunuh : ");
-                    String username = scanner.nextLine();
-                    int kpuId = getCurrentLeaderId();
-                    killWerewolfVote(kpuId, username);
-                } else {
-                    System.out.println("*** Kill Civilian ***");
-                    System.out.print("Input username yang ingin dibunuh : ");
-                    String username = scanner.nextLine();
-                    int kpuId = getCurrentLeaderId();
-                    killCivilianVote(kpuId, username);
-                }
-                break;
+        try {
+            String method = response.getString("method");
+            switch (method) {
+                case "change_phase":
+                    changePhase(response);
+                    break;
+                case "game_over":
+                    gameOver(response);
+                    break;
+                case "kpu_selected":
+                    setCurrentLeaderId(response.getInt("kpu_id"));
+                    waitResponseFromServer();
+                case "vote_now":
+                    String phase = response.getString("phase");
+                    if (phase.equals("day")) {
+                        System.out.println("*** Kill Werewolf ***");
+                        showAvailablePlayer();
+                        System.out.print("Input username yang ingin dibunuh : ");
+                        String username = scanner.nextLine();
+                        int kpuId = getCurrentLeaderId();
+                        killWerewolfVote(kpuId, username);
+                    } else {
+                        System.out.println("*** Kill Civilian ***");
+                        System.out.print("Input username yang ingin dibunuh : ");
+                        String username = scanner.nextLine();
+                        int kpuId = getCurrentLeaderId();
+                        killCivilianVote(kpuId, username);
+                    }
+                    break;
+            }
+        } catch (JSONException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, "responseHandler(): " + response.toString(), ex);
         }
+    }
+    
+    private void setCurrentLeaderId(int kpuId) {
+        currentLeaderId = kpuId;
+        System.out.println("Leader PID " + kpuId);
     }
 
     private void showAvailablePlayer() {
@@ -791,28 +808,24 @@ public class Client {
         request.put("kpu_id", previousProposerId);
         request.put("description", "kpu is selected");
 
+        System.out.println("clientAcceptProposal()");
         sendToServer(request.toString());
 
-        try {
-            String input = inputFromServer.readUTF();
-            JSONObject response = new JSONObject(input);
-            String status = response.getString("status");
-            switch (status) {
-                case "ok":
-                    System.out.println("Leader vote accepted.");
-                    break;
-                case "fail":
-                    System.out.println("Failed, " + response.getString("description") + ".");
-                    break;
-                case "error":
-                    System.out.println("Error, " + response.getString("description") + ".");
-                    break;
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+    }
+    
+    private void receiveAcceptedKpuId(JSONObject response) {
+        String status = response.getString("status");
+        switch (status) {
+            case "ok":
+                System.out.println("Leader vote accepted.");
+                break;
+            case "fail":
+                System.out.println("Failed, " + response.getString("description") + ".");
+                break;
+            case "error":
+                System.out.println("Error, " + response.getString("description") + ".");
+                break;
         }
-
-        // TODO: broadcast to all players?
     }
 
     private void startClientThread() {
@@ -832,7 +845,7 @@ public class Client {
     }
 
     private int getCurrentLeaderId() {
-        return players.get(players.size() - 1).getPlayerId();
+        return currentLeaderId;
     }
 
     public static void main(String args[]) {

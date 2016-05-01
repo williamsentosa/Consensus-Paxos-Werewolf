@@ -10,6 +10,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,21 +67,28 @@ public class ServerThread implements Runnable {
     private void requestHandler(String in) {
         System.out.println(in);
         JSONObject request = new JSONObject(in);
-        try {
-            String method = request.getString("method");
-            switch (method) {
-                case "join" : joinHandler(request.getString("username"), request.getString("udp_address"), request.getInt("udp_port")); break;
-                case "leave" : leaveHandler(); break;
-                case "ready" : readyUpHandler(); break;
-                case "client_address" : listClientHandler(); break;
-                case "prepare_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
-                case "vote_result_civilian" : voteResultCivilianHandler(request); break;
-                case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
+        if (request.has("method")) {
+            try {
+                String method = request.getString("method");
+                switch (method) {
+                    case "join" : joinHandler(request.getString("username"), request.getString("udp_address"), request.getInt("udp_port")); break;
+                    case "leave" : leaveHandler(); break;
+                    case "ready" : readyUpHandler(); break;
+                    case "client_address" : listClientHandler(); break;
+                    case "accepted_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
+                    case "vote_result_civilian" : voteResultCivilianHandler(request); break;
+                    case "vote_result_warewolf" : voteResultWerewolfHandler(request); break;
+                }
+            } catch (JSONException ex) {
+                errorHandler();
             }
-        } catch (JSONException ex) {
-            errorHandler();
+        } else if (request.has("status")) {
+//            try {
+//                
+//            } catch (JSONException ex) {
+//                Logger.getLogger(ServerThread.class.getName()).log(Level.INFO, "Unknown Protocol");
+//            }
         }
-        
     }
     
     private void errorHandler() {
@@ -221,9 +230,60 @@ public class ServerThread implements Runnable {
         response.put("status", "ok");
         response.put("description", "");
         
+        send(response.toString());
+        
         if (parent.getLeaderVotes().size() == players.size()) {
-            parent.processLeaderVotes();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            int chosenLeaderId = processLeaderVotes();
+            kpuSelected(chosenLeaderId);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
             voteNow();
+        }
+    }
+    
+    public int processLeaderVotes() {
+        Map<Integer, Integer> voteMap = new HashMap<>();
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            voteMap.put(player.getPlayerId(), 0);
+        }
+        
+        for (int i = 0; i < parent.getLeaderVotes().size(); i++) {
+            int votedLeader = parent.getLeaderVotes().get(i);
+            voteMap.put(votedLeader, voteMap.get(votedLeader) + 1);
+        }
+        
+        int chosenLeaderId = -1;
+        int maxVoteCount = -1;
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            
+            int voteCount = voteMap.get(player.getPlayerId());
+            if (voteCount > maxVoteCount) {
+                maxVoteCount = voteCount;
+                chosenLeaderId = player.getPlayerId();
+            }
+        }
+        System.out.println("The leader according to server is player_id " + chosenLeaderId);
+        return chosenLeaderId;
+    }
+    
+    public void kpuSelected(int leaderId) {
+        JSONObject response = new JSONObject();
+        response.put("method", "kpu_selected");
+        response.put("kpu_id", 3);
+        
+        for (Player p : players) {
+            send(p.getSocket(), response.toString());
         }
     }
     

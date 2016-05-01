@@ -66,7 +66,7 @@ public class ClientThread extends Observable implements Runnable {
                             break;
                     }
                 } catch (JSONException ex) {
-                    Logger.getLogger(Client.class.getName()).log(Level.WARNING, "requestHandler(): ERROR " + request.toString());
+                    Logger.getLogger(Client.class.getName()).log(Level.WARNING, "requestHandler(): ERROR " + request.toString(), ex);
                     errorHandler(ipAddress, port);
                 }
             } else {

@@ -16,6 +16,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -62,7 +63,7 @@ public class Client {
         this.createServer(myPort, timeout);
         this.connect(ipAddr, port);
     }
-
+    
     public int getPlayerId() {
         return playerId;
     }
@@ -355,7 +356,7 @@ public class Client {
     }
     
     private void dayPhase() {
-        chooseLeader();
+        //chooseLeader();
         waitResponseFromServer();
         // waitForVote();
         // --> paxosPrepareProposal
@@ -462,24 +463,45 @@ public class Client {
                 break;
         }
     }
-    
-    private void infoWerewolfKilled() {
-        int kill = -1;
+    private int majorityVote(HashMap<Integer, Integer> vote){
+        int maxId=-1;
+        int max=0;
+        for(int i=0; i<players.size(); i++){
+            if(vote.containsKey(i) && (max < vote.get(i))){
+                max = vote.get(i);
+                maxId= i;
+            }
+        }
+        return maxId;
+    }
+    private void infoWerewolfKilled(HashMap<Integer,Integer> vote){
+        int kill=-1;
+        int playerId = majorityVote(vote);
         List<Player> player = numberAlive();
-        for(int i=0; i<numberAlive().size(); i++) {
+        int[][] voteResult = new int[players.size()][2];
+        for(int i=0; i<players.size(); i++) {
+            voteResult[i][0]=i;
+            if(vote.containsKey(i)){
+                voteResult[i][1]=vote.get(i);
+            }else {
+                voteResult[i][1]=0;
+            }
             
         }
-       //send to server
+        int quorum = player.size()/2 ;
+        if(vote.get(playerId)> quorum)
+            kill=1;
+        //send to server
         JSONObject request = new JSONObject();
         if(kill==1) {
             request.put("method", "vote_result_werewolf");
-            request.put("player_killed",99);
+            request.put("player_killed",playerId);
             
         }else {
             request.put("method", "vote_result");
         }
         request.put("vote_status", kill);
-        request.put("vote_result", "()");
+        request.put("vote_result", voteResult);
         sendToServer(request.toString());
         
         try {
@@ -499,6 +521,92 @@ public class Client {
         }catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+    private int numberWerewolf(List<Player> players){
+        int count = 0;
+        for(Player player : players){
+            if(player.getRole().equalsIgnoreCase("werewolf"))
+              count++;  
+        }
+        return count;
+    }
+    
+    private void infoCivilianKilled(HashMap<Integer,Integer> vote){
+        int kill =-1;
+        int playerId = majorityVote(vote);
+        List<Player> client = numberAlive();
+        int[][] voteResult = new int[players.size()][2];
+        for(int i=0; i<players.size(); i++) {
+            voteResult[i][0]=i;
+            if(vote.containsKey(i)){
+                voteResult[i][1]=vote.get(i);
+            }else {
+                voteResult[i][1]=0;
+            }
+            
+        }
+        //send to server
+        JSONObject request = new JSONObject();
+        if(kill==1) {
+            request.put("method", "vote_result_civilian");
+            request.put("player_killed",99);
+            
+        }else {
+            request.put("method", "vote_result");
+        }
+        request.put("vote_status", kill);
+        request.put("vote_result", voteResult);
+        sendToServer(request.toString());
+        
+        try {
+            String input = inputFromServer.readUTF();
+            JSONObject response = new JSONObject(input);
+            String status = response.getString("status");
+            
+            switch(status){
+                case "ok":
+                    break;
+                case "fail":
+                    break;
+                case "error":
+                    break;
+            }
+            
+        }catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    private void infoKilled() {
+        int kill = -1;
+        String method="";
+        HashMap<Integer, Integer> hmap = new HashMap<Integer, Integer>();
+        List<Player> player = numberAlive();
+        for(int i=0; i<numberAlive().size(); i++) {
+            try {
+                DatagramPacket dp = receiveFromClient();
+                String responseString = new String(dp.getData());
+                JSONObject response = new JSONObject(responseString);
+                method = response.getString("method");
+                int temp = response.getInt("player_id");
+                if(hmap.containsKey(temp))
+                    hmap.put(temp, hmap.get(temp)+1);
+                else hmap.put(temp,1);
+            } catch (SocketTimeoutException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        switch(method){
+            case "vote_werewolf" : 
+                infoWerewolfKilled(hmap);
+                break;
+            case "vote_civilian" : 
+                infoCivilianKilled(hmap);
+            break;
+        }
+       
     }
  
     

@@ -57,6 +57,7 @@ public class ServerThread implements Runnable {
                 player = null;
                 if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
                     startGame();
+                    //voteNow();
                 }
             }
         }   
@@ -155,6 +156,12 @@ public class ServerThread implements Runnable {
         send(response.toString());
         if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
             startGame();
+            try {
+                Thread.sleep(4000);                 //1000 milliseconds is one second.
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            voteNow();
         }
     }
     
@@ -185,7 +192,7 @@ public class ServerThread implements Runnable {
             response.put("description", "game has started");
             send(players.get(i).getSocket(), response.toString());
         }
-//        voteNow();
+        //voteNow();
     }
     
     private void listClientHandler() {
@@ -282,6 +289,7 @@ public class ServerThread implements Runnable {
     
     private void voteNow() {
         JSONObject response = new JSONObject();
+        System.out.println("vote now");
         response.put("method", "vote_now");
         response.put("phase", Server.getCurrentPhase());
         if(Server.getCurrentPhase().compareTo("day") == 0) {

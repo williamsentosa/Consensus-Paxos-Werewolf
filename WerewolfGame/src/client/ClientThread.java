@@ -50,6 +50,7 @@ public class ClientThread extends Observable implements Runnable {
         
         if (!lastRequest.equalsIgnoreCase(in)) {
             lastRequest = in;
+            System.out.println(in);
             JSONObject request = new JSONObject(in);
             try {
                 String method = request.getString("method");

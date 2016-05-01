@@ -170,7 +170,11 @@ public class ServerThread implements Runnable {
         System.out.println("Testing 2");
         System.out.println("game is started : " + Server.gameIsStarted);
         while(!Server.gameIsStarted) {
-            // Waiting
+            try {
+                sleep(200);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
         System.out.println("Unlocking..");
         startGame();

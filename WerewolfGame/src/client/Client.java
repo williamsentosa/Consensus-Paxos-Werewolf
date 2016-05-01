@@ -382,6 +382,7 @@ public class Client {
     private void waitResponseFromServer() {
         try {
             String input = inputFromServer.readUTF();
+            System.out.println(input);
             JSONObject response = new JSONObject(input);
             responseHandler(response);
         } catch (IOException ex) {
@@ -455,7 +456,7 @@ public class Client {
     }
     
     public void killWerewolfVote(int kpuId, String username) {
-        int playerId;
+        int playerId = 0;
         Player client = this.findPlayer(kpuId, players);
         for(Player p : players) {
             if(p.getUsername().compareTo(username) == 0){
@@ -464,8 +465,8 @@ public class Client {
         }
         JSONObject request = new JSONObject();
         request.put("method", "vote_werewolf");
-        request.put("player_id", client.getPlayerId());
-        
+        request.put("player_id", playerId);
+        System.out.println("Sent message : " + request.toString());
         DatagramPacket dp = clientSendAndReceive(request.toString(), client.getUdpAddress(), client.getUdpPort());
         String responseString = new String(dp.getData());
         JSONObject response = new JSONObject(responseString);

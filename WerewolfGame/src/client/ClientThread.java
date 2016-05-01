@@ -40,34 +40,46 @@ public class ClientThread extends Observable implements Runnable {
                 Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        Logger.getLogger(Client.class.getName()).log(Level.FINE, "Client thread exited.");
     }
     
     public void requestHandler(DatagramPacket dp) {
         String ipAddress = dp.getAddress().getHostAddress();
         int port = dp.getPort();
         String in = new String(dp.getData());
-        System.out.println(in);
+        System.out.println("requestHandler():" + in);
         
-        if (!lastRequest.equalsIgnoreCase(in)) {
-            lastRequest = in;
-            JSONObject request = new JSONObject(in);
-            try {
-                String method = request.getString("method");
-                switch (method) {
-                    case "prepare_proposal":
-                        prepareProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
-                        break;
-                    case "accept_proposal":
-                        acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
-                        parent.clientAcceptProposal();
-                        break;
+        JSONObject request = new JSONObject(in);
+        if (request.has("method")) {
+            if (!lastRequest.equals(in)) {
+                lastRequest = in;
+                // it is really a request
+                try {
+                    String method = request.getString("method");
+                    switch (method) {
+                        case "prepare_proposal":
+                            prepareProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                            break;
+                        case "accept_proposal":
+                            acceptProposalHandler(request.getJSONArray("proposal_id"), ipAddress, port);
+                            parent.clientAcceptProposal();
+                            break;
+                    }
+                } catch (JSONException ex) {
+                    Logger.getLogger(Client.class.getName()).log(Level.WARNING, "requestHandler(): ERROR " + request.toString());
+                    errorHandler(ipAddress, port);
                 }
-            } catch (JSONException ex) {
-                errorHandler(ipAddress, port);
+            } else {
+                /* resend packet */
+                Logger.getLogger(Client.class.getName()).log(Level.INFO, "requestHandler(): " + "Resending...");
+                parent.sendToClient(lastResponse, ipAddress, port);
             }
-        } else {
-            /* resend packet */
-            parent.sendToClient(lastResponse, ipAddress, port);
+        } else if (request.has("status")) {
+            /* it is actually a response */
+            parent.exemptResponseFrom(ipAddress ,port);
+            if (parent.receiveResponseFromClient(request) != 1) {
+                parent.forceProposerCease();
+            }
         }
     }
 
@@ -83,11 +95,14 @@ public class ClientThread extends Observable implements Runnable {
         int proposerId = proposalIdData.getInt(1);
         
         JSONObject response = new JSONObject();
-        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() < proposerId) {
+        if (parent.getPreviousAcceptedKpuId() <= proposalId && parent.getPreviousProposerId() <= proposerId) {
             response.put("status", "ok");
             response.put("description", "accepted");
             if (parent.getPreviousAcceptedKpuId() > 0) {
                 response.put("previous_accepted", parent.getPreviousAcceptedKpuId());
+                if (proposerId > parent.getPlayerId()) {
+                    parent.forceProposerCease();
+                }
             }
             parent.setPreviousAcceptedKpuId(proposalId);
             parent.setPreviousProposerId(proposerId);
@@ -118,5 +133,4 @@ public class ClientThread extends Observable implements Runnable {
         lastResponse = response.toString();
         parent.sendToClient(lastResponse, ipAddress, port);
     }
-    
 }

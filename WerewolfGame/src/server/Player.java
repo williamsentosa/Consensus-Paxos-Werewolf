@@ -32,6 +32,7 @@ public class Player {
         isAlive = 0;
     }
     
+    
     public Player(int playerId, String address, int port, String username, Socket socket, String udp_addr, int udp_port) {
         this.playerId = playerId;
         this.address = address;
@@ -50,6 +51,14 @@ public class Player {
         this.udp_addr = udp_addr;
         this.udp_port = udp_port;
         this.username = username;
+    }
+    
+    public Player copy() {
+        Player p = this;
+        Player result = new Player(p.playerId, p.address, p.port, p.username, p.socket, p.udp_addr, p.udp_port);
+        result.isAlive = p.isAlive;
+        result.role = p.role;
+        return result;
     }
     
     public Socket getSocket() {

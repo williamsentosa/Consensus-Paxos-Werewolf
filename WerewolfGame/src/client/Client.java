@@ -347,7 +347,7 @@ public class Client {
             this.getListClient();
             System.out.println("Entering day Phase");
             dayPhase();
-            waitResponseFromServer();
+            //waitResponseFromServer();
             this.getListClient();
             nightPhase();
             waitResponseFromServer();
@@ -355,9 +355,24 @@ public class Client {
         
     }
     
+    private int isAlive(){
+        int result = 1;
+        int i=0;
+        while(getPlayerId()!=i){
+            i++;
+        }
+        result = players.get(i).getAlive();
+        return result;
+    }
+    
     private void dayPhase() {
         //chooseLeader();
-        waitResponseFromServer();
+        if(isAlive()==1){
+            waitResponseFromServer();
+        }
+        if(isLeader()){
+            infoWerewolfKilled();
+        }
         // waitForVote();
         // --> paxosPrepareProposal
         // --> paxosAcceptProposal
@@ -376,8 +391,11 @@ public class Client {
     }
     
     private void nightPhase() {
-        if(role.compareTo("werewolf")  == 0) {
+        if(isAlive()==1 && (role.compareTo("werewolf")  == 0)){
             waitResponseFromServer();
+        }
+        if(isLeader()){
+            infoCivilianKilled();
         }
     }
     
@@ -474,19 +492,39 @@ public class Client {
         }
         return maxId;
     }
-    private void infoWerewolfKilled(HashMap<Integer,Integer> vote){
+    private void infoWerewolfKilled(){
         int kill=-1;
-        int playerId = majorityVote(vote);
+        HashMap<Integer, Integer> vote = new HashMap<Integer, Integer>();
         List<Player> player = numberAlive();
-        int[][] voteResult = new int[players.size()][2];
-        for(int i=0; i<players.size(); i++) {
-            voteResult[i][0]=i;
-            if(vote.containsKey(i)){
-                voteResult[i][1]=vote.get(i);
-            }else {
-                voteResult[i][1]=0;
+        int i=0;
+        while(i<numberAlive().size()) {
+            try {
+                DatagramPacket dp = receiveFromClient();
+                String responseString = new String(dp.getData());
+                JSONObject response = new JSONObject(responseString);
+                String method = response.getString("method");
+                if(method.equalsIgnoreCase("vote_werewolf"))
+                    i++;
+                int temp = response.getInt("player_id");
+                if(vote.containsKey(temp))
+                    vote.put(temp, vote.get(temp)+1);
+                else vote.put(temp,1);
+            } catch (SocketTimeoutException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
+        }
+        
+        int majority = majorityVote(vote);
+        int[][] voteResult = new int[players.size()][2];
+        for(int j=0; j<players.size(); j++) {
+            voteResult[j][0]=j;
+            if(vote.containsKey(j)){
+                voteResult[j][1]=vote.get(j);
+            }else {
+                voteResult[j][1]=0;
+            }
         }
         int quorum = player.size()/2 ;
         if(vote.get(playerId)> quorum)
@@ -496,7 +534,6 @@ public class Client {
         if(kill==1) {
             request.put("method", "vote_result_werewolf");
             request.put("player_killed",playerId);
-            
         }else {
             request.put("method", "vote_result");
         }
@@ -511,40 +548,61 @@ public class Client {
             
             switch(status){
                 case "ok":
+                    System.out.println(response.getString("description"));
                     break;
                 case "fail":
+                    System.out.println(response.getString("description"));
                     break;
                 case "error":
+                    System.out.println(response.getString("description"));
                     break;
             }
-            
         }catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    private int numberWerewolf(List<Player> players){
+    private int numberWerewolf(){
         int count = 0;
-        for(Player player : players){
-            if(player.getRole().equalsIgnoreCase("werewolf"))
+        List<Player> clients = numberAlive();
+        for(Player werewolf : clients){
+            if(werewolf.getRole().equalsIgnoreCase("werewolf"))
               count++;  
         }
         return count;
     }
     
-    private void infoCivilianKilled(HashMap<Integer,Integer> vote){
+    private void infoCivilianKilled(){
         int kill =-1;
-        int playerId = majorityVote(vote);
-        List<Player> client = numberAlive();
-        int[][] voteResult = new int[players.size()][2];
-        for(int i=0; i<players.size(); i++) {
-            voteResult[i][0]=i;
-            if(vote.containsKey(i)){
-                voteResult[i][1]=vote.get(i);
-            }else {
-                voteResult[i][1]=0;
+        HashMap<Integer, Integer> vote = new HashMap<Integer, Integer>();
+        int i=0;
+        while(i<numberWerewolf()) {
+            try {
+                DatagramPacket dp = receiveFromClient();
+                String responseString = new String(dp.getData());
+                JSONObject response = new JSONObject(responseString);
+                String method = response.getString("method");
+                if(method.equalsIgnoreCase("vote_civilian"))
+                    i++;
+                int temp = response.getInt("player_id");
+                if(vote.containsKey(temp))
+                    vote.put(temp, vote.get(temp)+1);
+                else vote.put(temp,1);
+            } catch (SocketTimeoutException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
+        }
+        int playerId = majorityVote(vote);
+        int[][] voteResult = new int[players.size()][2];
+        for(int j=0; j<players.size(); j++) {
+            voteResult[j][0]=j;
+            if(vote.containsKey(j)){
+                voteResult[j][1]=vote.get(j);
+            }else {
+                voteResult[j][1]=0;
+            }
         }
         //send to server
         JSONObject request = new JSONObject();
@@ -566,10 +624,13 @@ public class Client {
             
             switch(status){
                 case "ok":
+                    System.out.println(response.getString("description"));
                     break;
                 case "fail":
+                    System.out.println(response.getString("description"));
                     break;
                 case "error":
+                    System.out.println(response.getString("description"));
                     break;
             }
             
@@ -577,37 +638,7 @@ public class Client {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    private void infoKilled() {
-        int kill = -1;
-        String method="";
-        HashMap<Integer, Integer> hmap = new HashMap<Integer, Integer>();
-        List<Player> player = numberAlive();
-        for(int i=0; i<numberAlive().size(); i++) {
-            try {
-                DatagramPacket dp = receiveFromClient();
-                String responseString = new String(dp.getData());
-                JSONObject response = new JSONObject(responseString);
-                method = response.getString("method");
-                int temp = response.getInt("player_id");
-                if(hmap.containsKey(temp))
-                    hmap.put(temp, hmap.get(temp)+1);
-                else hmap.put(temp,1);
-            } catch (SocketTimeoutException ex) {
-                Logger.getLogger(Client.class.getName()).log(Level.WARNING, "Packet lost, resending...");
-            } catch (IOException ex) {
-                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        switch(method){
-            case "vote_werewolf" : 
-                infoWerewolfKilled(hmap);
-                break;
-            case "vote_civilian" : 
-                infoCivilianKilled(hmap);
-            break;
-        }
-       
-    }
+    
  
     
     private void killCivilianVote(int kpuId, String username) {

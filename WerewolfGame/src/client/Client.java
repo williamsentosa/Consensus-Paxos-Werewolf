@@ -352,7 +352,6 @@ public class Client {
             nightPhase();
             waitResponseFromServer();
         }
-        
     }
     
     private int isAlive(){

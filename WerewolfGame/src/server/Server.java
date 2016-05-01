@@ -33,6 +33,7 @@ public class Server {
     private ArrayList<Integer> leaderVotes;
     private static String currentPhase = "day";
     private static int days = 0;
+    public static boolean gameIsStarted = false;
     
     public Server(int port, int timeout) {
         this.port = port;

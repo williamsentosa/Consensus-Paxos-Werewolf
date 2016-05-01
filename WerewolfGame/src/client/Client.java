@@ -347,12 +347,12 @@ public class Client {
             this.getListClient();
             System.out.println("Entering day Phase");
             dayPhase();
+            System.out.println("Entering night Phase");
             waitResponseFromServer();
             this.getListClient();
             nightPhase();
             waitResponseFromServer();
         }
-        
     }
     
     private void dayPhase() {

@@ -5,12 +5,15 @@
  */
 package server;
 
+import com.sun.corba.se.impl.orbutil.concurrent.Mutex;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
@@ -29,6 +32,10 @@ public class ServerThread implements Runnable {
     private Player player;
     private Server parent;
     private static int countVote = 0;
+    private static int leaderId;
+    private static boolean isGameOver = false;
+    private Semaphore mutex = new Semaphore(1,true);
+    
     
     public ServerThread(Socket clientSocket, ArrayList<Player> players, Server server) {
         this.clientSocket = clientSocket;
@@ -64,7 +71,9 @@ public class ServerThread implements Runnable {
     }
     
     private void requestHandler(String in) {
-        System.out.println(in);
+        if(player != null) {
+            System.out.println("Thread-" + player.getPlayerId() + " : " + in);
+        } else System.out.println("in");
         JSONObject request = new JSONObject(in);
         try {
             String method = request.getString("method");
@@ -80,7 +89,6 @@ public class ServerThread implements Runnable {
         } catch (JSONException ex) {
             errorHandler();
         }
-        
     }
     
     private void errorHandler() {
@@ -154,45 +162,91 @@ public class ServerThread implements Runnable {
             response.put("description", "waiting for other player to start");
         }
         send(response.toString());
+        System.out.println("Testing 1");
         if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
+            System.out.println("Testing x");
             startGame();
-            try {
-                Thread.sleep(4000);                 //1000 milliseconds is one second.
-            } catch(InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-            voteNow();
         }
+        System.out.println("Testing 2");
+        System.out.println("game is started : " + Server.gameIsStarted);
+        while(!Server.gameIsStarted) {
+            // Waiting
+        }
+        System.out.println("Unlocking..");
+        startGame();
     }
     
     private void startGame() {
-        int firstWolf = 0 + (int)(Math.random() * players.size()); 
-        int secondWolf = 0 + (int)(Math.random() * players.size());
-        while (secondWolf == firstWolf) {
-            secondWolf = 0 + (int)(Math.random() * players.size());
-        }
-        for(int i=0; i<players.size(); i++) {
-            players.get(i).setAlive();
-            JSONObject response = new JSONObject();
-            response.put("method", "start");
-            response.put("time", "day");
-            if(i != firstWolf && i != secondWolf) {
-                response.put("role", "civilian");
-                JSONArray arr = new JSONArray();
-                response.put("friend", arr);
-                players.get(i).setRole("civilian");
-            } else {
-                response.put("role", "werewolf");
-                JSONArray arr = new JSONArray();
-                arr.put(players.get(firstWolf).getUsername());
-                arr.put(players.get(secondWolf).getUsername());
-                response.put("friend", arr);
-                players.get(i).setRole("werewolf");
+        if(!Server.gameIsStarted) {
+            System.out.println("broadcasting...");
+            System.out.println("broadcasting success");
+            int firstWolf = 0 + (int)(Math.random() * players.size());
+            int secondWolf = 0 + (int)(Math.random() * players.size());
+            while (secondWolf == firstWolf) {
+                secondWolf = 0 + (int)(Math.random() * players.size());
             }
-            response.put("description", "game has started");
-            send(players.get(i).getSocket(), response.toString());
+            for(int i=0; i<players.size(); i++) {
+                players.get(i).setAlive();
+                JSONObject response = new JSONObject();
+                response.put("method", "start");
+                response.put("time", "day");
+                if(i != firstWolf && i != secondWolf) {
+                    response.put("role", "civilian");
+                    JSONArray arr = new JSONArray();
+                    response.put("friend", arr);
+                    players.get(i).setRole("civilian");
+                } else {
+                    response.put("role", "werewolf");
+                    JSONArray arr = new JSONArray();
+                    arr.put(players.get(firstWolf).getUsername());
+                    arr.put(players.get(secondWolf).getUsername());
+                    response.put("friend", arr);
+                    players.get(i).setRole("werewolf");
+                }
+                response.put("description", "game has started");
+                send(players.get(i).getSocket(), response.toString());
+            }
+            System.out.println("Broadcasting finished");
+            Server.gameIsStarted = true;
+            System.out.println("Game is started : " + Server.gameIsStarted);
         }
-        //voteNow();
+        isGameOver = false;
+        while(!isGameOver) {
+            System.out.println("Entering Phase");
+            dayPhase();
+            nightPhase();
+        }
+    }
+    
+    private void dayPhase() {
+        System.out.println("Jumlah Player : " + players.size());
+        waitForRequest();
+        voteNow();
+        leaderId = players.get(players.size() - 1).getPlayerId();
+        if(player.getPlayerId() == leaderId) {
+            waitForRequest();
+        }
+    }
+    
+    private void nightPhase() {
+        for(int i=0; i<players.size(); i++) {
+            waitForRequest();
+        }
+        voteNow();
+        leaderId = players.get(players.size() - 1).getPlayerId();
+        if(player.getPlayerId() == leaderId) {
+            waitForRequest();
+        }
+    }
+    
+    private void waitForRequest() {
+        try {
+            String input = in.readUTF();
+            System.out.println(input);
+            requestHandler(input);
+        } catch (IOException ex) {
+            Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private void listClientHandler() {
@@ -293,14 +347,12 @@ public class ServerThread implements Runnable {
         response.put("method", "vote_now");
         response.put("phase", Server.getCurrentPhase());
         if(Server.getCurrentPhase().compareTo("day") == 0) {
-            for(Player p : players) {
-                send(p.getSocket(), response.toString());
+            if(player.isAlive()) {
+                send(player.getSocket(), response.toString());
             }
         } else if(Server.getCurrentPhase().compareTo("night") == 0) {
-            for(Player p : players) {
-                if(p.getRole().compareTo("werewolf") == 0) {
-                    send(p.getSocket(), response.toString());
-                }
+            if(player.isAlive() && (player.getRole().compareTo("werewolf") == 0)) {
+                send(player.getSocket(), response.toString());
             }
         }
     }
@@ -320,7 +372,7 @@ public class ServerThread implements Runnable {
         }
     }
     
-    private void send(Socket socket, String msg) {
+    public void send(Socket socket, String msg) {
         try {
             DataOutputStream os = new DataOutputStream(socket.getOutputStream());
             os.writeUTF(msg);
@@ -329,7 +381,7 @@ public class ServerThread implements Runnable {
         }
     }
     
-    private void send(String msg) {
+    public void send(String msg) {
         try {
             out.writeUTF(msg);
         } catch (IOException ex) {
@@ -339,6 +391,7 @@ public class ServerThread implements Runnable {
     
     private void gameOver(String winner) {
         Server.changeGameStarted(false);
+        isGameOver = true;
         for(Player p : players) {
             JSONObject response = new JSONObject();
             response.put("method", "game_over");

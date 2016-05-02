@@ -45,12 +45,13 @@ public class Player {
         role = "";
     }
     
-    public Player(int playerId, int isAlive, String udp_addr, int udp_port, String username) {
+    public Player(int playerId, int isAlive, String udp_addr, int udp_port, String username, String role) {
         this.playerId = playerId;
         this.isAlive = isAlive;
         this.udp_addr = udp_addr;
         this.udp_port = udp_port;
         this.username = username;
+        this.role = role;
     }
     
     public Player copy() {
@@ -131,8 +132,6 @@ public class Player {
     
     @Override
     public String toString() {
-        String result = "";
-        result = result + playerId + " " + isAlive + " " + address + " " + port + " " + username + " " + udp_addr + " " + udp_port;
-        return result;
+        return playerId + " " + role + " " + isAlive + " " + address + " " + port + " " + username + " " + udp_addr + " " + udp_port;
     }
 }

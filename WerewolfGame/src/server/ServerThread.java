@@ -8,6 +8,7 @@ package server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,8 +79,10 @@ public class ServerThread implements Runnable {
                     case "accepted_proposal" : clientAcceptProposalHandler(request.getInt("kpu_id")); break;
                     case "vote_result_civilian" : voteResultCivilianHandler(request); break;
                     case "vote_result_werewolf" : voteResultWerewolfHandler(request); break;
+                    case "vote_result" : noMajorityVoteResult(request); break;
                 }
             } catch (JSONException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.WARNING, request.toString(), ex);
                 errorHandler();
             }
         } else if (request.has("status")) {
@@ -288,6 +291,7 @@ public class ServerThread implements Runnable {
     }
     
     private void voteResultCivilianHandler(JSONObject request) {
+        System.out.println("voteResultCivilianHandler(): " + request.toString());
         int playerKilled;
         if(request.getInt("vote_status") == 1) {
             playerKilled = request.getInt("player_killed");
@@ -298,60 +302,103 @@ public class ServerThread implements Runnable {
                 }
             }
         }
-        System.out.println("Vote Result : " + request.getString("vote_result"));
         JSONObject response = new JSONObject();
         response.put("status", "ok");
         response.put("description", "");
         send(response.toString());
-        if(request.getInt("vote_status") == -1) {
-            if(countVote < 2) {
-                countVote++;
-                voteNow();
-            } else {
-                countVote = 0;
-                changePhase("night");
+        if(isGameOver()) {
+            if(numberWerewolfAlive() == 0) {
+                this.gameOver("civilian");
+            } else if(numberCivilianAlive() <= numberWerewolfAlive()) {
+                this.gameOver("werewolf");
             }
-        } else if(request.getInt("vote_status") == 1) {
-            countVote = 0;
-            changePhase("night");
+        } else {
+            changePhase("day");
         }
     }
     
     private void voteResultWerewolfHandler(JSONObject request) {
         System.out.println("voteResultWerewolfHandler(): " + request.toString());
         int playerKilled;
-        if(request.getInt("vote_status") == 1) {
-            playerKilled = request.getInt("player_killed");
-            for(Player p : players) {
-                if(p.getPlayerId() == playerKilled) {
-                    p.setNotAlive();
-                    break;
-                }
+        playerKilled = request.getInt("player_killed");
+        System.out.println("Players count = " + players.size());
+        for(Player p : players) {
+            if(p.getPlayerId() == playerKilled) {
+                p.setNotAlive();
+                break;
             }
         }
-        System.out.println("Vote Result : " + request.getString("vote_result"));
+        //System.out.println("Vote Result : " + request.getString("vote_result"));
         JSONObject response = new JSONObject();
         response.put("status", "ok");
         response.put("description", "");
+        System.out.println("voteResultWerewolfHandler(): " + response.toString());
         send(response.toString());
-        if(request.getInt("vote_status") == -1) {
-            voteNow();
-        } else if(request.getInt("vote_status") == 1) {
+        if(isGameOver()) {
+            if(numberWerewolfAlive() == 0) {
+                this.gameOver("civilian");
+            } else if(numberCivilianAlive() <= numberWerewolfAlive()) {
+                this.gameOver("werewolf");
+            }
+        } else {
+            countVote = 1;
             changePhase("night");
         }
+    }
+    
+    private void noMajorityVoteResult(JSONObject request) {
+        if(Server.getCurrentPhase().compareTo("day") == 0) {
+            if(request.getInt("vote_status") == -1) {
+                if(countVote < 2) {
+                    countVote++;
+                    voteNow();
+                } else {
+                    countVote = 1;
+                    changePhase("night");
+                }
+            }
+        } else if(Server.getCurrentPhase().compareTo("night") == 0) {
+            voteNow();
+        }
+        
+    }
+    
+    private boolean isGameOver() {
+        return numberWerewolfAlive() == 0 || numberCivilianAlive() <= numberWerewolfAlive();
+    }
+    
+    private int numberWerewolfAlive() {
+        int result = 0;
+        for(Player p : players) {
+            if(p.isAlive() && (p.getRole().compareTo("werewolf") == 0)) result++;
+        }
+        return result;
+    }
+    
+    private int numberCivilianAlive() {
+        int result = 0;
+        for(Player p : players) {
+            if(p.isAlive() && (p.getRole().compareTo("civilian") == 0)) result++;
+        }
+        return result;
     }
     
     private void voteNow() {
         JSONObject response = new JSONObject();
         response.put("method", "vote_now");
         response.put("phase", Server.getCurrentPhase());
+        System.out.println("voteNow() : " + response.toString());
         if(Server.getCurrentPhase().compareTo("day") == 0) {
             for(Player p : players) {
-                send(p.getSocket(), response.toString());
+                if(p.isAlive()) {
+                    System.out.println("voteNow() : " + response.toString() + " to " + p.getSocket().getInetAddress().getHostAddress() + " " + p.getPort());
+                    send(p.getSocket(), response.toString());
+                }
             }
         } else if(Server.getCurrentPhase().compareTo("night") == 0) {
             for(Player p : players) {
-                if(p.getRole().compareTo("werewolf") == 0) {
+                if(p.getRole().compareTo("werewolf") == 0 && p.isAlive()) {
+                    System.out.println("voteNow() : " + response.toString() + " to " + p.getSocket().getInetAddress().getHostAddress() + " " + p.getPort());
                     send(p.getSocket(), response.toString());
                 }
             }
@@ -360,6 +407,7 @@ public class ServerThread implements Runnable {
     
     private void changePhase(String phase) {
         Server.changeCurrentPhase(phase);
+        System.out.println("Change phase to " + Server.getCurrentPhase());
         if(phase.compareTo("day") == 0) {
             Server.incrDays();
         }
@@ -371,9 +419,20 @@ public class ServerThread implements Runnable {
         for(Player p : players) {
             send(p.getSocket(), response.toString());
         }
+        if(phase.compareTo("night") == 0) {
+            String request;
+            try {
+                request = in.readUTF();
+                requestHandler(request);
+            } catch (IOException ex) {
+                Logger.getLogger(ServerThread.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            voteNow();
+        }
     }
     
     private void send(Socket socket, String msg) {
+        System.out.println("send(): " + msg);
         try {
             DataOutputStream os = new DataOutputStream(socket.getOutputStream());
             os.writeUTF(msg);
@@ -383,6 +442,7 @@ public class ServerThread implements Runnable {
     }
     
     private void send(String msg) {
+        System.out.println("send(): " + msg);
         try {
             out.writeUTF(msg);
         } catch (IOException ex) {

@@ -69,6 +69,9 @@ public class ClientThread extends Observable implements Runnable {
                         case "vote_werewolf":
                             voteWerewolfHandler(request.getInt("player_id"), ipAddress, port);
                             break;
+                        case "vote_civilian":
+                            voteCivilianHandler(request.getInt("player_id"), ipAddress, port);
+                            break;
                     }
                 } catch (JSONException ex) {
                     Logger.getLogger(Client.class.getName()).log(Level.WARNING, "requestHandler(): ERROR " + request.toString(), ex);
@@ -141,6 +144,16 @@ public class ClientThread extends Observable implements Runnable {
     
     private void voteWerewolfHandler(int playerId, String ipAddress, int port) {
         parent.voteWerewolf(playerId);
+        
+        JSONObject response = new JSONObject();
+        response.put("status", "ok");
+        response.put("description", "");
+        lastResponse = response.toString();
+        parent.sendToClient(lastResponse, ipAddress, port);
+    }
+    
+    private void voteCivilianHandler(int playerId, String ipAddress, int port) {
+        parent.voteCivilian(playerId);
         
         JSONObject response = new JSONObject();
         response.put("status", "ok");

@@ -54,7 +54,9 @@ public class Client {
     private String role;
     private ArrayList<Player> players;
     private int currentLeaderId = -1;
-
+    private static boolean isGameOver = false;
+    
+    
     public Client() {
         scanner = new Scanner(System.in);
         role = "";
@@ -241,13 +243,26 @@ public class Client {
         return null;
     }
 
-    private List<Player> numberAlive() {
-        List<Player> result = new ArrayList<Player>();
+    private List<Player> getAlivePlayers() {
+        List<Player> result = new ArrayList<>();
         for (Player client : players) {
             if (client.getAlive() == 1) {
                 result.add(client);
+                // System.out.println("getAlivePlayers(): " + client + " is Alive.");
             }
         }
+        return result;
+    }
+    
+    private List<Player> getDiedPlayers() {
+        List<Player> result = new ArrayList<>();
+        for (Player client : players) {
+            if (client.getAlive() == 0) {
+                result.add(client);
+                // System.out.println("getDiedPlayers(): " + client + " is Died.");
+            }
+        }
+        // System.out.println("getDiedPlayers(): " + result.size());
         return result;
     }
 
@@ -348,22 +363,25 @@ public class Client {
                 System.out.println(s);
             }
         }
-        boolean finished = false;
-        while (!finished) {
-            this.getListClient();
-            System.out.println("Entering day Phase");
-            dayPhase();
+        isGameOver = false;
+        dayPhase();
+        while (!isGameOver) {
             waitResponseFromServer();
-            this.getListClient();
-            nightPhase();
-            waitResponseFromServer();
+//            System.out.println("Entering day Phase");
+//            dayPhase();
+//            waitResponseFromServer();
+//            this.getListClient();
+//            nightPhase();
+//            waitResponseFromServer();
         }
 
     }
 
     private void dayPhase() {
+        System.out.println("*** Entering day phase ***");
+        getListClient();
         chooseLeader();
-        waitResponseFromServer();
+//        waitResponseFromServer();
         // waitForVote();
         // --> paxosPrepareProposal
         // --> paxosAcceptProposal
@@ -387,13 +405,13 @@ public class Client {
     }
 
     private void nightPhase() {
-        if (role.compareTo("werewolf") == 0) {
-            waitResponseFromServer();
-        }
+        System.out.println("*** Entering night phase ***");
+        getListClient();
     }
 
     private void responseHandler(JSONObject response) {
         try {
+            System.out.println("responseHandler() : " + response.toString());
             String method = response.getString("method");
             switch (method) {
                 case "change_phase":
@@ -423,7 +441,7 @@ public class Client {
 //                        if (kpuId == playerId) {
 //                            waitForResponses();
 //                        }
-                    } else {
+                    } else if(phase.compareTo("night") == 0){
                         System.out.println("*** Kill Civilian ***");
                         System.out.print("Input username yang ingin dibunuh : ");
                         String username = scanner.nextLine();
@@ -452,13 +470,31 @@ public class Client {
         System.out.println("time : " + response.getString("time"));
         System.out.println("days : " + response.getInt("days"));
         System.out.println("description : " + response.getString("description"));
+        if(response.getString("time").compareTo("day") == 0) {
+            dayPhase();
+        } else if(response.getString("time").compareTo("night") == 0) {
+            nightPhase();
+        }
     }
 
     private void gameOver(JSONObject response) {
-        System.out.println("winner : " + response.getString("winner"));
-        System.out.println("description : " + response.getString("description"));
+        String winner = response.getString("winner");
+        if(role.compareTo(winner) == 0) {
+            System.out.println("*** Congratulation, you've won the game ***");
+        } else {
+            System.out.println("*** Game Over ***");
+            System.out.println(response.getString("description"));
+        }
+        isGameOver = true;
+        resetGame();
     }
-
+    
+    private void resetGame() {
+        this.players = new ArrayList<>();
+        this.playerId = -1;
+        this.role = "";
+    }
+    
     private void chooseLeader() {
         if (isLeader()) {
             paxosPrepareProposal(copyListPlayer(players));
@@ -486,7 +522,7 @@ public class Client {
 
     private void infoWerewolfKilled(HashMap<Integer, Integer> voteMap) {
         int kill = -1;
-        List<Player> player = numberAlive();
+        List<Player> player = getAlivePlayers();
         
         System.out.println("infoWerewolfKilled(): " + voteMap.toString());
         
@@ -508,6 +544,55 @@ public class Client {
         JSONObject request = new JSONObject();
         if(kill==1) {
             request.put("method", "vote_result_werewolf");
+            request.put("player_killed", majority);
+        }else {
+            request.put("method", "vote_result");
+        }
+        request.put("vote_status", kill);
+        request.put("vote_result", voteResult);
+        sendToServer(request.toString());
+    }
+    
+    private int numberWerewolf() {
+        int count = 2;
+        try {
+            List<Player> clients = getDiedPlayers();
+            System.out.println(clients.toString());
+            for(Player p : clients) {
+                if(p.getRole().equalsIgnoreCase("werewolf")){
+                    count--;
+                }
+            }
+        } catch (NullPointerException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return count;
+    }
+    
+    private void infoCivilianKilled(HashMap<Integer, Integer> voteMap) {
+        int kill = -1;
+        List<Player> player = getAlivePlayers();
+        
+        System.out.println("infoCivilianKilled(): " + voteMap.toString());
+        
+        int majority = majorityVote(voteMap);
+        int[][] voteResult = new int[players.size()][2];
+        for(int j=0; j<players.size(); j++) {
+            int playerId = players.get(j).getPlayerId();
+            voteResult[j][0] = playerId;
+            if (voteMap.containsKey(playerId)) {
+                voteResult[j][1] = voteMap.get(playerId);
+            } else {
+                voteResult[j][1] = 0;
+            }
+        }
+        int quorum = numberWerewolf()/2 ;
+        if(voteMap.get(majority) > quorum)
+            kill=1;
+        //send to server
+        JSONObject request = new JSONObject();
+        if(kill==1) {
+            request.put("method", "vote_result_civilian");
             request.put("player_killed", majority);
         }else {
             request.put("method", "vote_result");
@@ -541,22 +626,7 @@ public class Client {
         }
         request.put("player_id", playerId);
 
-        DatagramPacket dp = clientSendAndReceive(request.toString(), client.getUdpAddress(), client.getUdpPort());
-        String responseString = new String(dp.getData());
-        JSONObject response = new JSONObject(responseString);
-        String status = response.getString("status");
-
-        switch (status) {
-            case "ok":
-                System.out.println("Ok, " + response.getString("description") + ".");
-                break;
-            case "fail":
-                System.out.println("Failed, " + response.getString("description") + ".");
-                break;
-            case "error":
-                System.out.println("Error, " + response.getString("description") + ".");
-                break;
-        }
+        sendToClient(request.toString(), client.getUdpAddress(), client.getUdpPort());
     }
 
     private void getListClient() {
@@ -567,7 +637,7 @@ public class Client {
         try {
             String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
-            System.out.println(response.toString());
+            System.out.println("getListClient() : " + response.toString());
             String status = response.getString("status");
             switch (status) {
                 case "ok":
@@ -580,7 +650,11 @@ public class Client {
                         String address = jsonLineClient.getString("address");
                         int port = jsonLineClient.getInt("port");
                         String username = jsonLineClient.getString("username");
-                        players.add(new Player(playerId, isAlive, address, port, username));
+                        String role = "";
+                        if (jsonLineClient.has("role")) {
+                            role = jsonLineClient.getString("role");
+                        }
+                        players.add(new Player(playerId, isAlive, address, port, username, role));
                     }
                     break;
                 case "fail":
@@ -856,6 +930,7 @@ public class Client {
     
     private int voteWerewolfCount = 0;
     private HashMap<Integer, Integer> votedWerewolves = new HashMap<>();
+    
     public void voteWerewolf(int playerId) {
         if (voteWerewolfCount == players.size()) {
             votedWerewolves.clear();
@@ -863,20 +938,46 @@ public class Client {
         }
         
         // bila kosong
-        if (votedWerewolves.containsKey(playerId)) {
-            votedWerewolves.put(playerId, votedWerewolves.get(playerId)+1);
+        if (getVotedWerewolves().containsKey(playerId)) {
+            getVotedWerewolves().put(playerId, getVotedWerewolves().get(playerId)+1);
         } else {
-            votedWerewolves.put(playerId,1);
+            getVotedWerewolves().put(playerId,1);
         }
-        voteWerewolfCount++;
+        setVoteWerewolfCount(getVoteWerewolfCount() + 1);
         
-        System.out.println(voteWerewolfCount + " " + players.size());
-        if (voteWerewolfCount == players.size()) {
+        System.out.println("voteWerewolf(): " + getVoteWerewolfCount() + " " + players.size());
+        if (getVoteWerewolfCount() == players.size()) {
             // lakukan sesuatu untuk memproses voting
-            infoWerewolfKilled(votedWerewolves);
+            infoWerewolfKilled(getVotedWerewolves());
         }
+        
     }
 
+    private int voteCivilianCount = 0;
+    private HashMap<Integer, Integer> votedCivilians = new HashMap<>();
+    
+    public void voteCivilian(int playerId) {
+        if (voteCivilianCount == numberWerewolf()) {
+            votedCivilians.clear();
+            voteCivilianCount = 0;
+        }
+        
+        // bila kosong
+        if (votedCivilians.containsKey(playerId)) {
+            votedCivilians.put(playerId, votedCivilians.get(playerId)+1);
+        } else {
+            votedCivilians.put(playerId,1);
+        }
+        voteCivilianCount++;
+        
+        System.out.println("voteCivilian(): " + voteCivilianCount + " " + numberWerewolf());
+        if (voteCivilianCount == numberWerewolf()) {
+            // lakukan sesuatu untuk memproses voting
+            infoCivilianKilled(votedCivilians);
+        }
+        
+    }
+    
     public static void main(String args[]) {
         Scanner in = new Scanner(System.in);
         String serverIpAddress = "127.0.0.1";
@@ -886,5 +987,33 @@ public class Client {
         int timeout = 1 * 1000; // 5 seconds
         Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
         client.run();
+    }
+
+    /**
+     * @return the voteWerewolfCount
+     */
+    public int getVoteWerewolfCount() {
+        return voteWerewolfCount;
+    }
+
+    /**
+     * @param voteWerewolfCount the voteWerewolfCount to set
+     */
+    public void setVoteWerewolfCount(int voteWerewolfCount) {
+        this.voteWerewolfCount = voteWerewolfCount;
+    }
+
+    /**
+     * @return the votedWerewolves
+     */
+    public HashMap<Integer, Integer> getVotedWerewolves() {
+        return votedWerewolves;
+    }
+
+    /**
+     * @param votedWerewolves the votedWerewolves to set
+     */
+    public void setVotedWerewolves(HashMap<Integer, Integer> votedWerewolves) {
+        this.votedWerewolves = votedWerewolves;
     }
 }

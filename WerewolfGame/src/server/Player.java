@@ -130,6 +130,15 @@ public class Player {
         return this.username.compareTo(username) == 0;
     }
     
+    public void reset() {
+        playerId = -1;
+        isAlive = 0;
+        port = 0;
+        username = "";
+        role = "";
+        isAlive = 0;
+    }
+    
     @Override
     public String toString() {
         return playerId + " " + role + " " + isAlive + " " + address + " " + port + " " + username + " " + udp_addr + " " + udp_port;

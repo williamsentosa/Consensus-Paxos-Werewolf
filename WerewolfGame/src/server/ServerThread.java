@@ -32,6 +32,7 @@ public class ServerThread implements Runnable {
     private Player player;
     private Server parent;
     private static int countVote = 0;
+    private boolean isReady = false;
     
     public ServerThread(Socket clientSocket, ArrayList<Player> players, Server server) {
         this.clientSocket = clientSocket;
@@ -58,6 +59,13 @@ public class ServerThread implements Runnable {
                 System.out.println(player.getUsername() + " has been disconnected");
                 players.remove(player);
                 player = null;
+                System.out.println("List Players : ");
+                for(Player p : players) {
+                    System.out.println(p);
+                }
+                if(isReady) {
+                    Server.decrNumberPlayerReadied();
+                }
                 if(Server.getNumberPlayerReadied() >= Server.MIN_PLAYERS && players.size() == Server.getNumberPlayerReadied()) {
                     startGame();
                 }
@@ -125,6 +133,10 @@ public class ServerThread implements Runnable {
             }
         }
         send(response.toString());
+        System.out.println("List Players : ");
+        for(Player p : players) {
+            System.out.println(p);
+        }
     }
     
     private boolean isPlayerExist(String username) {
@@ -161,6 +173,7 @@ public class ServerThread implements Runnable {
             response.put("description", "You haven't join the game");
         } else {
             Server.incrNumberPlayerReadied();
+            isReady = true;
             response.put("status", "ok");
             response.put("description", "waiting for other player to start");
         }
@@ -459,5 +472,13 @@ public class ServerThread implements Runnable {
             response.put("description", "game has been won by " + winner);
             send(p.getSocket(), response.toString());
         }
+        resetGame();
+    }
+    
+    private void resetGame() {
+        for(Player p : players) {
+            p.reset();
+        }
+        parent.reset();
     }
 }

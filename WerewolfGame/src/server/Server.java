@@ -57,6 +57,10 @@ public class Server {
         numberPlayerReadied++;
     }
     
+    public static void decrNumberPlayerReadied() {
+        numberPlayerReadied--;
+    }
+    
     public static void resetNumberPlayerReadied() {
         numberPlayerReadied = 0;
     }
@@ -104,7 +108,18 @@ public class Server {
     public void setLeaderVotes(ArrayList<Integer> leaderVotes) {
         this.leaderVotes = leaderVotes;
     }
-            
+    
+    public void reset() {
+        System.out.println("Reset Server");
+        currentIdPlayer = 0;
+        numberPlayerReadied = 0;
+        isGameStarted = false;
+        currentLeaderId = -1;
+        currentPhase = "day";
+        days = 0;
+        leaderVotes = new ArrayList<>();
+    }
+    
     public void run() {
         try {
             serverSocket = new ServerSocket(port);

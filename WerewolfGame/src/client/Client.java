@@ -978,17 +978,6 @@ public class Client {
         
     }
     
-    public static void main(String args[]) {
-        Scanner in = new Scanner(System.in);
-        String serverIpAddress = "127.0.0.1";
-        int serverPort = 8080;
-        System.out.print("Input your port : ");
-        int myPort = in.nextInt();
-        int timeout = 1 * 1000; // 5 seconds
-        Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
-        client.run();
-    }
-
     /**
      * @return the voteWerewolfCount
      */
@@ -1016,4 +1005,18 @@ public class Client {
     public void setVotedWerewolves(HashMap<Integer, Integer> votedWerewolves) {
         this.votedWerewolves = votedWerewolves;
     }
+    
+    public static void main(String args[]) {
+        Scanner in = new Scanner(System.in);
+        String serverIpAddress = "127.0.0.1";
+        int serverPort = 8080;
+//        System.out.print("Input your port : ");
+//        int myPort = in.nextInt();
+        int myPort = (int)(Math.random() * 9999);
+        System.out.println("Your Port is " + myPort);
+        int timeout = 1 * 1000; // 5 seconds
+        Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
+        client.run();
+    }
+
 }

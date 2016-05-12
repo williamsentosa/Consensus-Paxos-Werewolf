@@ -41,7 +41,7 @@ public class Player {
         this.socket = socket;
         this.udp_addr = udp_addr;
         this.udp_port = udp_port;
-        isAlive = 0;
+        isAlive = 1;
         role = "";
     }
     

@@ -362,7 +362,7 @@ public class ServerThread implements Runnable {
     private void noMajorityVoteResult(JSONObject request) {
         if(Server.getCurrentPhase().compareTo("day") == 0) {
             if(request.getInt("vote_status") == -1) {
-                if(countVote < 2) {
+                if(countVote < 1) {
                     countVote++;
                     voteNow();
                 } else {

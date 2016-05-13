@@ -31,7 +31,7 @@ import server.Player;
  * @author William Sentosa
  */
 public class Client {
-
+    
     private Socket socketToServer;
     private String serverIpAddress;
     private int serverPort;
@@ -56,12 +56,14 @@ public class Client {
     private int currentLeaderId = -1;
     private static boolean isGameOver = false;
     
+    //private static GameFrame frame;
     
+
     public Client() {
         scanner = new Scanner(System.in);
         role = "";
     }
-
+    
     public Client(String ipAddr, int port, int myPort, int timeout) {
         scanner = new Scanner(System.in);
         role = "";
@@ -215,6 +217,7 @@ public class Client {
     public void run() {
         String request = "";
         String command = "";
+        
         while (true) {
             System.out.print("Input Command : ");
             command = scanner.nextLine();
@@ -1020,7 +1023,7 @@ public class Client {
     
     public static void main(String args[]) {
         Scanner in = new Scanner(System.in);
-        String serverIpAddress = "127.0.0.1";
+        String serverIpAddress = "10.5.27.173";
         int serverPort = 8080;
 //        System.out.print("Input your port : ");
 //        int myPort = in.nextInt();
@@ -1028,6 +1031,8 @@ public class Client {
         System.out.println("Your Port is " + myPort);
         int timeout = 1 * 1000; // 5 seconds
         Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
+        //client.frame = new GameFrame(client);
+        //client.frame.setVisible(true);
         client.run();
     }
 

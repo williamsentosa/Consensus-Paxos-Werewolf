@@ -462,7 +462,10 @@ public class Client {
 
     private void showAvailablePlayer() {
         for (Player p : players) {
-            System.out.println(p.getUsername());
+            if(p.getAlive()==1)
+                System.out.println(p.getUsername());
+            else if (p.getAlive()==0)
+                System.out.println(p.getUsername()+" die, role: "+ p.getRole());
         }
     }
 
@@ -653,6 +656,7 @@ public class Client {
                         String role = "";
                         if (jsonLineClient.has("role")) {
                             role = jsonLineClient.getString("role");
+                            System.out.println(username + " die, role: " + role);
                         }
                         players.add(new Player(playerId, isAlive, address, port, username, role));
                     }
@@ -928,13 +932,21 @@ public class Client {
         return currentLeaderId;
     }
     
+    private int numberAlive(){
+        int count=0;
+        for(Player p : players){
+            if(p.getAlive()==1)
+                count++;
+        }
+        return count;
+    }
     private int voteWerewolfCount = 0;
     private HashMap<Integer, Integer> votedWerewolves = new HashMap<>();
     
     public void voteWerewolf(int playerId) {
-        if (voteWerewolfCount == players.size()) {
+        if (getVoteWerewolfCount() >= numberAlive()) {
             votedWerewolves.clear();
-            voteWerewolfCount = 0;
+            setVoteWerewolfCount(0);
         }
         
         // bila kosong
@@ -946,7 +958,7 @@ public class Client {
         setVoteWerewolfCount(getVoteWerewolfCount() + 1);
         
         System.out.println("voteWerewolf(): " + getVoteWerewolfCount() + " " + players.size());
-        if (getVoteWerewolfCount() == players.size()) {
+        if (getVoteWerewolfCount() >= numberAlive()) {
             // lakukan sesuatu untuk memproses voting
             infoWerewolfKilled(getVotedWerewolves());
         }
@@ -957,7 +969,7 @@ public class Client {
     private HashMap<Integer, Integer> votedCivilians = new HashMap<>();
     
     public void voteCivilian(int playerId) {
-        if (voteCivilianCount == numberWerewolf()) {
+        if (voteCivilianCount >= numberWerewolf()) {
             votedCivilians.clear();
             voteCivilianCount = 0;
         }
@@ -971,7 +983,7 @@ public class Client {
         voteCivilianCount++;
         
         System.out.println("voteCivilian(): " + voteCivilianCount + " " + numberWerewolf());
-        if (voteCivilianCount == numberWerewolf()) {
+        if (voteCivilianCount >= numberWerewolf()) {
             // lakukan sesuatu untuk memproses voting
             infoCivilianKilled(votedCivilians);
         }

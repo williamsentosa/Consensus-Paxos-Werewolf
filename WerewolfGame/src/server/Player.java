@@ -29,7 +29,7 @@ public class Player {
         port = 0;
         username = "";
         role = "";
-        isAlive = 0;
+        isAlive = 1;
     }
     
     

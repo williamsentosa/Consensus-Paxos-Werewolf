@@ -48,6 +48,10 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jDialog1 = new javax.swing.JDialog();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel10 = new javax.swing.JLabel();
+        jLabel11 = new javax.swing.JLabel();
         Menu = new javax.swing.JPanel();
         Game = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
@@ -73,6 +77,48 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         joinButton = new javax.swing.JButton();
         Waiting = new javax.swing.JPanel();
         jLabel7 = new javax.swing.JLabel();
+
+        jPanel1.setBackground(new java.awt.Color(153, 153, 255));
+
+        jLabel10.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jLabel10.setText("VOTE NOW !");
+
+        jLabel11.setText("jLabel11");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(119, 119, 119)
+                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(61, 61, 61)
+                        .addComponent(jLabel11)))
+                .addContainerGap(101, Short.MAX_VALUE))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jLabel11)
+                .addContainerGap(123, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout jDialog1Layout = new javax.swing.GroupLayout(jDialog1.getContentPane());
+        jDialog1.getContentPane().setLayout(jDialog1Layout);
+        jDialog1Layout.setHorizontalGroup(
+            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        jDialog1Layout.setVerticalGroup(
+            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -421,6 +467,14 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
             users.addRow(o); 
         }
     }    
+    
+    public void initPlayerTable(DefaultTableModel model) {
+        ListPlayer.setModel(model);
+        ListPlayer.getColumnModel().getColumn(0).setPreferredWidth(100);
+        ListPlayer.getColumnModel().getColumn(1).setPreferredWidth(200);
+        ListPlayer.getColumnModel().getColumn(2).setPreferredWidth(100);
+        ListPlayer.getColumnModel().getColumn(3).setPreferredWidth(150);
+    }
 
          
     
@@ -438,7 +492,10 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JTextField inputServerAddress;
     private javax.swing.JTextField inputServerPort;
     private javax.swing.JTextField inputUser;
+    private javax.swing.JDialog jDialog1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -447,6 +504,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton joinButton;
     private javax.swing.JLabel role;
@@ -458,6 +516,11 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         //gameFrame.changeDay("night");
         //gameFrame.changeRole("werewolf");
         gameFrame.setVisible(true);
+        Player player = new Player();
+        ArrayList<Player> players = new ArrayList<Player>();
+        players.add(player);
+        gameFrame.updateModel(players);
+        gameFrame.initPlayerTable(gameFrame.getTableModel());
         
     }
 

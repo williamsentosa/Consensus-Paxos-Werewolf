@@ -5,18 +5,26 @@
  */
 package client;
 
+import static java.lang.Thread.sleep;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author FiqieUlya
  */
-public class GameFrame extends javax.swing.JFrame {
+public class GameFrame extends javax.swing.JFrame implements Observer {
     private  Client client;
+    private Observable observable = null;
+    private GuiThread guiThread = null;
     
     /**
      * Creates new form Register
      */
-    public GameFrame(Client client) { 
-        this.client = client;
+    public GameFrame() { 
         initComponents();
     }
 
@@ -247,11 +255,28 @@ public class GameFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_inputServerAddressActionPerformed
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        // TODO add your handling code here:
+        String serverAddress = inputServerAddress.getText();
+        int serverPort = Integer.parseInt(inputServerPort.getText());
+        int myPort = Integer.parseInt(inputClientPort.getText());
+        int timeout = 1 * 1000; // 5 seconds
+        client = new Client(serverAddress, serverPort, myPort, timeout);
+        client.setGameFrame(this);
+        observable = client.getObservable();
+        joinGame();
     }//GEN-LAST:event_connectButtonActionPerformed
 
     private void joinButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joinButtonActionPerformed
-        // TODO add your handling code here:
+        String username = this.inputUser.getText();
+        String result = client.joinCommand(username);
+        System.out.println(result);
+        if(result.compareTo("success") == 0) {
+            guiThread = new GuiThread(client,this);
+            new Thread(guiThread).start();
+            guiThread.changeCommand("ready");
+            waiting();
+        } else {
+            JOptionPane.showMessageDialog(this, "Username has been used, try another name.");
+        }
     }//GEN-LAST:event_joinButtonActionPerformed
 
     private void connectButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_connectButtonMouseClicked
@@ -304,12 +329,13 @@ public class GameFrame extends javax.swing.JFrame {
     public void waiting(){
         changePanel("waiting");
     }
-    public void readyUp(){
+    public void game(){
         changePanel("game");
     }
     public void register(){
         changePanel("register");
     }
+    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Game;
     private javax.swing.JPanel Join;
@@ -330,4 +356,14 @@ public class GameFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JButton joinButton;
     // End of variables declaration//GEN-END:variables
+
+    public static void main(String args[]) {
+        GameFrame gameFrame = new GameFrame();
+        gameFrame.setVisible(true);
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        System.out.println("halo");
+    }
 }

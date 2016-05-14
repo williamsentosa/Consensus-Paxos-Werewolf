@@ -18,6 +18,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Observable;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,12 +57,13 @@ public class Client {
     private int currentLeaderId = -1;
     private static boolean isGameOver = false;
     
-    //private static GameFrame frame;
-    
+    private Observable observable;
+    private GameFrame gameFrame;
 
     public Client() {
         scanner = new Scanner(System.in);
         role = "";
+        observable = new Observable();
     }
     
     public Client(String ipAddr, int port, int myPort, int timeout) {
@@ -69,8 +71,17 @@ public class Client {
         role = "";
         this.createServer(myPort, timeout);
         this.connect(ipAddr, port);
+        observable = new Observable();
     }
-
+    
+    public Observable getObservable() {
+        return observable;
+    }
+    
+    public void setGameFrame(GameFrame gameFrame) {
+        this.gameFrame = gameFrame;
+    }
+    
     public int getPlayerId() {
         return playerId;
     }
@@ -135,7 +146,6 @@ public class Client {
             InetAddress ipAddress = InetAddress.getByName("localhost");
             byte[] outputToClient = new byte[UDP_BYTE_LENGTH];;
             outputToClient = msg.getBytes();
-
             DatagramPacket sendPacket = new DatagramPacket(outputToClient, outputToClient.length, ipAddress, port);
             clientSocket.send(sendPacket);
         } catch (UnknownHostException ex) {
@@ -218,23 +228,23 @@ public class Client {
         String request = "";
         String command = "";
         
-        while (true) {
-            System.out.print("Input Command : ");
-            command = scanner.nextLine();
-            switch (command) {
-                case "join game":
-                    joinCommand();
-                    break;
-                case "leave game":
-                    leaveCommand();
-                    break;
-                case "ready up":
-                    readyUpCommand();
-                    break;
-                default:
-                    System.out.println("Invalid command");
-            }
-        }
+//        while (true) {
+//            System.out.print("Input Command : ");
+//            command = scanner.nextLine();
+//            switch (command) {
+//                case "join game":
+//                    joinCommand();
+//                    break;
+//                case "leave game":
+//                    leaveCommand();
+//                    break;
+//                case "ready up":
+//                    readyUpCommand();
+//                    break;
+//                default:
+//                    System.out.println("Invalid command");
+//            }
+//        }
     }
 
     private Player findPlayer(int player_id, List<Player> Clients) {
@@ -269,9 +279,8 @@ public class Client {
         return result;
     }
 
-    private void joinCommand() {
-        System.out.print("Input username : ");
-        String username = scanner.nextLine();
+    public String joinCommand(String username) {
+        String result = "";
         JSONObject request = new JSONObject();
         request.put("method", "join");
         request.put("username", username);
@@ -286,9 +295,11 @@ public class Client {
                 case "ok":
                     playerId = response.getInt("player_id");
                     System.out.println("Your player id is " + playerId + ".");
+                    result = "success";
                     break;
                 case "fail":
                     System.out.println("Failed, " + response.getString("description") + ".");
+                    result = "failed";
                     break;
                 case "error":
                     System.out.println("Failed, " + response.getString("description") + ".");
@@ -297,6 +308,7 @@ public class Client {
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return result;
     }
 
     private void leaveCommand() {
@@ -323,7 +335,7 @@ public class Client {
         }
     }
 
-    private void readyUpCommand() {
+    public void readyUpCommand() {
         JSONObject request = new JSONObject();
         request.put("method", "ready");
         sendToServer(request.toString());
@@ -358,6 +370,7 @@ public class Client {
     }
 
     private void startPlaying(ArrayList<String> friends) {
+        gameFrame.game();
         System.out.println("Playing...");
         System.out.println("Your role : " + role);
         if (role.compareTo("werewolf") == 0) {

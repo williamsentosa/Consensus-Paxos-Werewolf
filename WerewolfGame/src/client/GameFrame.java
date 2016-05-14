@@ -6,11 +6,16 @@
 package client;
 
 import static java.lang.Thread.sleep;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import server.Player;
+
 
 /**
  *
@@ -20,7 +25,13 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private  Client client;
     private Observable observable = null;
     private GuiThread guiThread = null;
-    
+    private DefaultTableModel users = new DefaultTableModel(new Object[]{"ID Pemain", "Nama Pemain", "Status", "Role"},0);
+    private static String[] phaseList =  { 
+        "/image/day.png","/image/night.png"
+    };
+    private static String[] roleList= {
+        "/image/profilecivilian.png", "/image/profilewerewolf.png"
+    };
     /**
      * Creates new form Register
      */
@@ -38,6 +49,14 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private void initComponents() {
 
         Menu = new javax.swing.JPanel();
+        Game = new javax.swing.JPanel();
+        jLabel8 = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        ListPlayer = new javax.swing.JTable();
+        jLabel9 = new javax.swing.JLabel();
+        gameUserName = new javax.swing.JLabel();
+        role = new javax.swing.JLabel();
+        bg = new javax.swing.JLabel();
         Register = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         inputClientPort = new javax.swing.JTextField();
@@ -47,7 +66,6 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         connectButton = new javax.swing.JButton();
-        Game = new javax.swing.JPanel();
         Join = new javax.swing.JPanel();
         jLabel5 = new javax.swing.JLabel();
         inputUser = new javax.swing.JTextField();
@@ -59,6 +77,53 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         Menu.setLayout(new java.awt.CardLayout());
+
+        Game.setBackground(new java.awt.Color(255, 255, 255));
+        Game.setLayout(null);
+
+        jLabel8.setBackground(new java.awt.Color(255, 255, 255));
+        jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel8.setForeground(new java.awt.Color(255, 0, 0));
+        jLabel8.setText("ROLE   :");
+        Game.add(jLabel8);
+        jLabel8.setBounds(58, 50, 67, 22);
+
+        ListPlayer.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane1.setViewportView(ListPlayer);
+
+        Game.add(jScrollPane1);
+        jScrollPane1.setBounds(58, 265, 452, 356);
+
+        jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel9.setForeground(new java.awt.Color(255, 0, 51));
+        jLabel9.setText("Player:");
+        Game.add(jLabel9);
+        jLabel9.setBounds(58, 237, 53, 22);
+
+        gameUserName.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        gameUserName.setText("USERNAME");
+        Game.add(gameUserName);
+        gameUserName.setBounds(300, 70, 137, 30);
+
+        role.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/profilecivilian.png"))); // NOI18N
+        Game.add(role);
+        role.setBounds(135, 11, 333, 172);
+
+        bg.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/day.png"))); // NOI18N
+        Game.add(bg);
+        bg.setBounds(0, 0, 980, 690);
+
+        Menu.add(Game, "game");
 
         Register.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -145,19 +210,6 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
         Menu.add(Register, "register");
         Register.getAccessibleContext().setAccessibleName("");
-
-        javax.swing.GroupLayout GameLayout = new javax.swing.GroupLayout(Game);
-        Game.setLayout(GameLayout);
-        GameLayout.setHorizontalGroup(
-            GameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 978, Short.MAX_VALUE)
-        );
-        GameLayout.setVerticalGroup(
-            GameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 688, Short.MAX_VALUE)
-        );
-
-        Menu.add(Game, "game");
 
         Join.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -335,14 +387,53 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     public void register(){
         changePanel("register");
     }
+    public void changeDay(String phase){
+        int temp=0;
+        if(phase.equalsIgnoreCase("day")){
+            temp=0;
+        }else temp=1;
+        ImageIcon image = new ImageIcon(getClass().getResource(phaseList[temp]));
+        bg.setIcon(image);
+    }
+    public void changeRole(String Role){
+        int temp=0;
+        if(Role.equalsIgnoreCase("werewolf")){
+            temp=1;
+        }else temp=0;
+        ImageIcon image = new ImageIcon(getClass().getResource(roleList[temp]));
+        role.setIcon(image);
+    }
+    
+    public DefaultTableModel getTableModel() {
+        return users;
+    }
+    
+    public void updateModel(ArrayList<Player> players) {
+
+        int i=1;
+        users.setRowCount(0);
+        for(Player player: players){
+            Object[] o = new Object[4];
+            o[0]=player.getPlayerId();
+            o[1]=player.getUsername();
+            o[2]=player.getAlive();
+            o[3]=player.getRole();
+            users.addRow(o); 
+        }
+    }    
+
+         
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Game;
     private javax.swing.JPanel Join;
+    private javax.swing.JTable ListPlayer;
     private javax.swing.JPanel Menu;
     private javax.swing.JPanel Register;
     private javax.swing.JPanel Waiting;
+    private javax.swing.JLabel bg;
     private javax.swing.JButton connectButton;
+    private javax.swing.JLabel gameUserName;
     private javax.swing.JTextField inputClientPort;
     private javax.swing.JTextField inputServerAddress;
     private javax.swing.JTextField inputServerPort;
@@ -354,12 +445,20 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton joinButton;
+    private javax.swing.JLabel role;
     // End of variables declaration//GEN-END:variables
 
     public static void main(String args[]) {
         GameFrame gameFrame = new GameFrame();
+        //cara menggunakan ganti hari sama ganti role
+        //gameFrame.changeDay("night");
+        //gameFrame.changeRole("werewolf");
         gameFrame.setVisible(true);
+        
     }
 
     @Override

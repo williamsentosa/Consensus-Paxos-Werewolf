@@ -32,13 +32,14 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private static String[] roleList= {
         "/image/profilecivilian.png", "/image/profilewerewolf.png"
     };
+    public String playerChoosen;
     /**
      * Creates new form Register
      */
     public GameFrame() { 
         initComponents();
     }
-
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -91,6 +92,11 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         listPlayerAlive.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
 
         voteButton.setText("Vote!");
+        voteButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                voteButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -398,6 +404,15 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         //Create client
     }//GEN-LAST:event_connectButtonMouseClicked
 
+    private void voteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_voteButtonActionPerformed
+        playerChoosen = listPlayerAlive.getSelectedItem().toString();
+        int kpuId = client.getCurrentLeaderId();
+        client.killWerewolfVote(kpuId, playerChoosen);
+        VoteNow.setVisible(false);
+        waiting();
+    }//GEN-LAST:event_voteButtonActionPerformed
+
+    
     /**
      * @param args the command line arguments
      */
@@ -465,6 +480,10 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         }else temp=0;
         ImageIcon image = new ImageIcon(getClass().getResource(roleList[temp]));
         role.setIcon(image);
+    }
+    
+    public void setUsername(String username) {
+        gameUserName.setText(username);
     }
     
     public DefaultTableModel getTableModel() {

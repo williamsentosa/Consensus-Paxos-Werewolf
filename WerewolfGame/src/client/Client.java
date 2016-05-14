@@ -295,6 +295,7 @@ public class Client {
                 case "ok":
                     playerId = response.getInt("player_id");
                     System.out.println("Your player id is " + playerId + ".");
+                    gameFrame.setUsername(username);
                     result = "success";
                     break;
                 case "fail":
@@ -374,10 +375,13 @@ public class Client {
         System.out.println("Playing...");
         System.out.println("Your role : " + role);
         if (role.compareTo("werewolf") == 0) {
+            gameFrame.changeRole("werewolf");
             System.out.println("Your friend are : ");
             for (String s : friends) {
                 System.out.println(s);
             }
+        } else {
+            gameFrame.changeRole("civilian");
         }
         isGameOver = false;
         dayPhase();
@@ -394,6 +398,8 @@ public class Client {
     }
 
     private void dayPhase() {
+        gameFrame.game();
+        gameFrame.changeDay("day");
         System.out.println("*** Entering day phase ***");
         getListClient();
         chooseLeader();
@@ -421,8 +427,10 @@ public class Client {
     }
 
     private void nightPhase() {
-        System.out.println("*** Entering night phase ***");
+        gameFrame.game();
         getListClient();
+        gameFrame.changeDay("night");
+        System.out.println("*** Entering night phase ***");
     }
 
     private void responseHandler(JSONObject response) {
@@ -441,28 +449,30 @@ public class Client {
                     waitResponseFromServer();
                     break;
                 case "vote_now":
+                    gameFrame.changePanel("game");
                     String phase = response.getString("phase");
                     if (phase.equals("day")) {
                         System.out.println("*** Kill Werewolf ***");
                         showAvailablePlayer();
-                        System.out.print("Input username yang ingin dibunuh : ");
-                        String username = scanner.nextLine();
-                        int kpuId = getCurrentLeaderId();
+//                        System.out.print("Input username yang ingin dibunuh : ");
+//                        String username = scanner.nextLine();
+//                        int kpuId = getCurrentLeaderId();
 //                        if (kpuId == playerId) {
 //                            initWaitForResponses("killWerewolfVote", copyListPlayer(players), "");
 //                        }
                         
-                        killWerewolfVote(kpuId, username);
+                        //killWerewolfVote(kpuId, username);
                         
 //                        if (kpuId == playerId) {
 //                            waitForResponses();
 //                        }
                     } else if(phase.compareTo("night") == 0){
                         System.out.println("*** Kill Civilian ***");
-                        System.out.print("Input username yang ingin dibunuh : ");
-                        String username = scanner.nextLine();
-                        int kpuId = getCurrentLeaderId();
-                        killCivilianVote(kpuId, username);
+                        showAvailablePlayer();
+//                        System.out.print("Input username yang ingin dibunuh : ");
+//                        String username = scanner.nextLine();
+//                        int kpuId = getCurrentLeaderId();
+//                        killCivilianVote(kpuId, username);
                     }
                     break;
             }
@@ -477,12 +487,16 @@ public class Client {
     }
 
     private void showAvailablePlayer() {
+        ArrayList<Player> alivePlayers = new ArrayList<>();
         for (Player p : players) {
-            if(p.getAlive()==1)
+            if(p.getAlive()==1) {
+                alivePlayers.add(p);
                 System.out.println(p.getUsername());
-            else if (p.getAlive()==0)
+            } else if (p.getAlive()==0) {
                 System.out.println(p.getUsername()+" die, role: "+ p.getRole());
+            }
         }
+        gameFrame.voteNow(alivePlayers);
     }
 
     private void changePhase(JSONObject response) {
@@ -657,32 +671,70 @@ public class Client {
             String input = inputFromServer.readUTF();
             JSONObject response = new JSONObject(input);
             System.out.println("getListClient() : " + response.toString());
-            String status = response.getString("status");
-            switch (status) {
-                case "ok":
-                    System.out.println(response.getJSONArray("clients"));
-                    JSONArray lineClients = response.getJSONArray("clients");
-                    for (Object client : lineClients) {
-                        JSONObject jsonLineClient = (JSONObject) client;
-                        int playerId = jsonLineClient.getInt("player_id");
-                        int isAlive = jsonLineClient.getInt("is_alive");
-                        String address = jsonLineClient.getString("address");
-                        int port = jsonLineClient.getInt("port");
-                        String username = jsonLineClient.getString("username");
-                        String role = "";
-                        if (jsonLineClient.has("role")) {
-                            role = jsonLineClient.getString("role");
-                            System.out.println(username + " die, role: " + role);
+            if(response.has("status")) {
+                String status = response.getString("status");
+                switch (status) {
+                    case "ok":
+                        System.out.println(response.getJSONArray("clients"));
+                        JSONArray lineClients = response.getJSONArray("clients");
+                        for (Object client : lineClients) {
+                            JSONObject jsonLineClient = (JSONObject) client;
+                            int playerId = jsonLineClient.getInt("player_id");
+                            int isAlive = jsonLineClient.getInt("is_alive");
+                            String address = jsonLineClient.getString("address");
+                            int port = jsonLineClient.getInt("port");
+                            String username = jsonLineClient.getString("username");
+                            String role = "";
+                            if (jsonLineClient.has("role")) {
+                                role = jsonLineClient.getString("role");
+                                System.out.println(username + " die, role: " + role);
+                            }
+                            players.add(new Player(playerId, isAlive, address, port, username, role));
                         }
-                        players.add(new Player(playerId, isAlive, address, port, username, role));
-                    }
-                    break;
-                case "fail":
-                    System.out.println("Failed, " + response.getString("description") + ".");
-                    break;
-                case "error":
-                    System.out.println("Failed, " + response.getString("description") + ".");
-                    break;
+                        gameFrame.updateModel(players);
+                        gameFrame.initPlayerTable(gameFrame.getTableModel());
+                        break;
+                    case "fail":
+                        System.out.println("Failed, " + response.getString("description") + ".");
+                        break;
+                    case "error":
+                        System.out.println("Failed, " + response.getString("description") + ".");
+                        break;
+                } 
+            } else {
+                responseHandler(response);
+                input = inputFromServer.readUTF();
+                System.out.println("getListClient() : " + input);
+                response = new JSONObject(input);
+                String status = response.getString("status");
+                switch (status) {
+                    case "ok":
+                        System.out.println(response.getJSONArray("clients"));
+                        JSONArray lineClients = response.getJSONArray("clients");
+                        for (Object client : lineClients) {
+                            JSONObject jsonLineClient = (JSONObject) client;
+                            int playerId = jsonLineClient.getInt("player_id");
+                            int isAlive = jsonLineClient.getInt("is_alive");
+                            String address = jsonLineClient.getString("address");
+                            int port = jsonLineClient.getInt("port");
+                            String username = jsonLineClient.getString("username");
+                            String role = "";
+                            if (jsonLineClient.has("role")) {
+                                role = jsonLineClient.getString("role");
+                                System.out.println(username + " die, role: " + role);
+                            }
+                            players.add(new Player(playerId, isAlive, address, port, username, role));
+                        }
+                        gameFrame.updateModel(players);
+                        gameFrame.initPlayerTable(gameFrame.getTableModel());
+                        break;
+                    case "fail":
+                        System.out.println("Failed, " + response.getString("description") + ".");
+                        break;
+                    case "error":
+                        System.out.println("Failed, " + response.getString("description") + ".");
+                        break;
+                }
             }
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
@@ -944,7 +996,7 @@ public class Client {
         }
     }
 
-    private int getCurrentLeaderId() {
+    public int getCurrentLeaderId() {
         return currentLeaderId;
     }
     

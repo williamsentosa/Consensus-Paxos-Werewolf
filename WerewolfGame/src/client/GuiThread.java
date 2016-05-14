@@ -35,6 +35,12 @@ public class GuiThread implements Runnable {
                     gameFrame.game();
                     command = ""; // reset
                     break;
+                case "vote" :
+                    String playerSelected = gameFrame.playerChoosen;
+                    int kpuId = client.getCurrentLeaderId();
+                    client.killWerewolfVote(kpuId, playerSelected);
+                    command = "";
+                    break;
             }
         }
     }

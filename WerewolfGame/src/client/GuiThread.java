@@ -11,7 +11,7 @@ import java.util.Observable;
  *
  * @author William Sentosa
  */
-public class GuiThread extends Observable implements Runnable {
+public class GuiThread implements Runnable {
     
     private String command = "";
     private Client client;
@@ -33,6 +33,7 @@ public class GuiThread extends Observable implements Runnable {
                 case "ready" :
                     client.readyUpCommand();
                     gameFrame.game();
+                    command = ""; // reset
                     break;
             }
         }

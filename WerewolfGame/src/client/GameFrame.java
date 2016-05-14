@@ -48,10 +48,12 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jDialog1 = new javax.swing.JDialog();
+        VoteNow = new javax.swing.JDialog();
         jPanel1 = new javax.swing.JPanel();
         jLabel10 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
+        listPlayerAlive = new javax.swing.JComboBox();
+        voteButton = new javax.swing.JButton();
         Menu = new javax.swing.JPanel();
         Game = new javax.swing.JPanel();
         jLabel8 = new javax.swing.JLabel();
@@ -79,11 +81,16 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         jLabel7 = new javax.swing.JLabel();
 
         jPanel1.setBackground(new java.awt.Color(153, 153, 255));
+        jPanel1.setPreferredSize(new java.awt.Dimension(600, 600));
 
         jLabel10.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
         jLabel10.setText("VOTE NOW !");
 
-        jLabel11.setText("jLabel11");
+        jLabel11.setText("Username");
+
+        listPlayerAlive.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        voteButton.setText("Vote!");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -92,32 +99,42 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(28, 28, 28)
+                        .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 77, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(119, 119, 119)
                         .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(61, 61, 61)
-                        .addComponent(jLabel11)))
-                .addContainerGap(101, Short.MAX_VALUE))
+                        .addGap(156, 156, 156)
+                        .addComponent(voteButton))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(123, 123, 123)
+                        .addComponent(listPlayerAlive, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(55, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(21, 21, 21)
                 .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jLabel11)
-                .addContainerGap(123, Short.MAX_VALUE))
+                .addGap(33, 33, 33)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(listPlayerAlive, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(36, 36, 36)
+                .addComponent(voteButton)
+                .addContainerGap(108, Short.MAX_VALUE))
         );
 
-        javax.swing.GroupLayout jDialog1Layout = new javax.swing.GroupLayout(jDialog1.getContentPane());
-        jDialog1.getContentPane().setLayout(jDialog1Layout);
-        jDialog1Layout.setHorizontalGroup(
-            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        javax.swing.GroupLayout VoteNowLayout = new javax.swing.GroupLayout(VoteNow.getContentPane());
+        VoteNow.getContentPane().setLayout(VoteNowLayout);
+        VoteNowLayout.setHorizontalGroup(
+            VoteNowLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 379, Short.MAX_VALUE)
         );
-        jDialog1Layout.setVerticalGroup(
-            jDialog1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        VoteNowLayout.setVerticalGroup(
+            VoteNowLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 275, Short.MAX_VALUE)
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -455,8 +472,6 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     }
     
     public void updateModel(ArrayList<Player> players) {
-
-        int i=1;
         users.setRowCount(0);
         for(Player player: players){
             Object[] o = new Object[4];
@@ -477,13 +492,27 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     }
 
          
+    public void initComboPlayer(ArrayList<Player> players){
+        listPlayerAlive.removeAllItems();
+        for(Player player: players){
+            if(player.getAlive()==1)
+                listPlayerAlive.addItem(player.getUsername());
+        }
+    }
     
+    public void voteNow(ArrayList<Player> players){
+        initComboPlayer(players);
+        VoteNow.setSize(450,250);
+        VoteNow.setLocationRelativeTo(null);
+        VoteNow.setVisible(true);
+    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Game;
     private javax.swing.JPanel Join;
     private javax.swing.JTable ListPlayer;
     private javax.swing.JPanel Menu;
     private javax.swing.JPanel Register;
+    private javax.swing.JDialog VoteNow;
     private javax.swing.JPanel Waiting;
     private javax.swing.JLabel bg;
     private javax.swing.JButton connectButton;
@@ -492,7 +521,6 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JTextField inputServerAddress;
     private javax.swing.JTextField inputServerPort;
     private javax.swing.JTextField inputUser;
-    private javax.swing.JDialog jDialog1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -507,7 +535,9 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton joinButton;
+    private javax.swing.JComboBox listPlayerAlive;
     private javax.swing.JLabel role;
+    private javax.swing.JButton voteButton;
     // End of variables declaration//GEN-END:variables
 
     public static void main(String args[]) {
@@ -515,13 +545,14 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         //cara menggunakan ganti hari sama ganti role
         //gameFrame.changeDay("night");
         //gameFrame.changeRole("werewolf");
+        gameFrame.setLocationRelativeTo(null);
         gameFrame.setVisible(true);
         Player player = new Player();
         ArrayList<Player> players = new ArrayList<Player>();
         players.add(player);
         gameFrame.updateModel(players);
         gameFrame.initPlayerTable(gameFrame.getTableModel());
-        
+        gameFrame.voteNow(players);
     }
 
     @Override

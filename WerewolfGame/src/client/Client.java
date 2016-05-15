@@ -59,6 +59,7 @@ public class Client {
     
     private Observable observable;
     private GameFrame gameFrame;
+    private String yourName;
 
     public Client() {
         scanner = new Scanner(System.in);
@@ -295,6 +296,7 @@ public class Client {
                 case "ok":
                     playerId = response.getInt("player_id");
                     System.out.println("Your player id is " + playerId + ".");
+                    yourName = username;
                     gameFrame.setUsername(username);
                     result = "success";
                     break;
@@ -372,15 +374,20 @@ public class Client {
 
     private void startPlaying(ArrayList<String> friends) {
         gameFrame.game();
+        gameFrame.setDay(0);
         System.out.println("Playing...");
         System.out.println("Your role : " + role);
         if (role.compareTo("werewolf") == 0) {
             gameFrame.changeRole("werewolf");
             System.out.println("Your friend are : ");
             for (String s : friends) {
-                System.out.println(s);
+                if(!yourName.equalsIgnoreCase(s)){
+                    System.out.println(s);
+                    gameFrame.setFriend(s);
+                }
             }
         } else {
+            gameFrame.hideFriend();
             gameFrame.changeRole("civilian");
         }
         isGameOver = false;
@@ -449,7 +456,7 @@ public class Client {
                     waitResponseFromServer();
                     break;
                 case "vote_now":
-                    gameFrame.changePanel("game");
+                    gameFrame.game();
                     String phase = response.getString("phase");
                     if (phase.equals("day")) {
                         System.out.println("*** Kill Werewolf ***");
@@ -500,6 +507,7 @@ public class Client {
     }
 
     private void changePhase(JSONObject response) {
+        gameFrame.setDay(response.getInt("days"));
         System.out.println("time : " + response.getString("time"));
         System.out.println("days : " + response.getInt("days"));
         System.out.println("description : " + response.getString("description"));
@@ -519,10 +527,11 @@ public class Client {
             System.out.println(response.getString("description"));
         }
         isGameOver = true;
-        resetGame();
+        gameFrame.gameOver();
+        //resetGame();
     }
     
-    private void resetGame() {
+    public void resetGame() {
         this.players = new ArrayList<>();
         this.playerId = -1;
         this.role = "";

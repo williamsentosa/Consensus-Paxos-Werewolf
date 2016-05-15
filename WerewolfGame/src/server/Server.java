@@ -27,7 +27,7 @@ public class Server {
     private static int currentIdPlayer = 0;
     private ArrayList<Player> players;
     private static int numberPlayerReadied = 0;
-    public static final int MIN_PLAYERS = 4;
+    public static final int MIN_PLAYERS = 6;
     private static boolean isGameStarted = false;
     private int currentLeaderId = -1;
     private ArrayList<Integer> leaderVotes;

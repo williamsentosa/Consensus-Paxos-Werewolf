@@ -50,20 +50,12 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private void initComponents() {
 
         VoteNow = new javax.swing.JDialog();
-        jPanel1 = new javax.swing.JPanel();
+        Vote = new javax.swing.JPanel();
         jLabel10 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         listPlayerAlive = new javax.swing.JComboBox();
         voteButton = new javax.swing.JButton();
         Menu = new javax.swing.JPanel();
-        Game = new javax.swing.JPanel();
-        jLabel8 = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        ListPlayer = new javax.swing.JTable();
-        jLabel9 = new javax.swing.JLabel();
-        gameUserName = new javax.swing.JLabel();
-        role = new javax.swing.JLabel();
-        bg = new javax.swing.JLabel();
         Register = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         inputClientPort = new javax.swing.JTextField();
@@ -73,16 +65,39 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         jLabel3 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         connectButton = new javax.swing.JButton();
+        Game = new javax.swing.JPanel();
+        currentDay = new javax.swing.JLabel();
+        jLabel15 = new javax.swing.JLabel();
+        Vote1 = new javax.swing.JPanel();
+        jLabel13 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
+        listPlayerAlive1 = new javax.swing.JComboBox();
+        voteButton1 = new javax.swing.JButton();
+        jLabel8 = new javax.swing.JLabel();
+        friendPanel = new javax.swing.JPanel();
+        Friend = new javax.swing.JLabel();
+        friendName = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        ListPlayer = new javax.swing.JTable();
+        jLabel9 = new javax.swing.JLabel();
+        gameUserName = new javax.swing.JLabel();
+        role = new javax.swing.JLabel();
+        bg = new javax.swing.JLabel();
         Join = new javax.swing.JPanel();
         jLabel5 = new javax.swing.JLabel();
         inputUser = new javax.swing.JTextField();
         jLabel6 = new javax.swing.JLabel();
         joinButton = new javax.swing.JButton();
+        GameOver = new javax.swing.JPanel();
+        jLabel12 = new javax.swing.JLabel();
+        WinnerRole = new javax.swing.JLabel();
+        Winner = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
         Waiting = new javax.swing.JPanel();
         jLabel7 = new javax.swing.JLabel();
 
-        jPanel1.setBackground(new java.awt.Color(153, 153, 255));
-        jPanel1.setPreferredSize(new java.awt.Dimension(600, 600));
+        Vote.setBackground(new java.awt.Color(153, 153, 255));
+        Vote.setPreferredSize(new java.awt.Dimension(600, 600));
 
         jLabel10.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
         jLabel10.setText("VOTE NOW !");
@@ -98,33 +113,33 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
             }
         });
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
+        javax.swing.GroupLayout VoteLayout = new javax.swing.GroupLayout(Vote);
+        Vote.setLayout(VoteLayout);
+        VoteLayout.setHorizontalGroup(
+            VoteLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(VoteLayout.createSequentialGroup()
+                .addGroup(VoteLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(VoteLayout.createSequentialGroup()
                         .addGap(28, 28, 28)
                         .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 77, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(VoteLayout.createSequentialGroup()
                         .addGap(119, 119, 119)
                         .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(VoteLayout.createSequentialGroup()
                         .addGap(156, 156, 156)
                         .addComponent(voteButton))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(VoteLayout.createSequentialGroup()
                         .addGap(123, 123, 123)
                         .addComponent(listPlayerAlive, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(55, Short.MAX_VALUE))
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
+        VoteLayout.setVerticalGroup(
+            VoteLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(VoteLayout.createSequentialGroup()
                 .addGap(21, 21, 21)
                 .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(33, 33, 33)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(VoteLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(listPlayerAlive, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(36, 36, 36)
@@ -136,63 +151,16 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         VoteNow.getContentPane().setLayout(VoteNowLayout);
         VoteNowLayout.setHorizontalGroup(
             VoteNowLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 379, Short.MAX_VALUE)
+            .addComponent(Vote, javax.swing.GroupLayout.DEFAULT_SIZE, 379, Short.MAX_VALUE)
         );
         VoteNowLayout.setVerticalGroup(
             VoteNowLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 275, Short.MAX_VALUE)
+            .addComponent(Vote, javax.swing.GroupLayout.DEFAULT_SIZE, 275, Short.MAX_VALUE)
         );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         Menu.setLayout(new java.awt.CardLayout());
-
-        Game.setBackground(new java.awt.Color(255, 255, 255));
-        Game.setLayout(null);
-
-        jLabel8.setBackground(new java.awt.Color(255, 255, 255));
-        jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel8.setForeground(new java.awt.Color(255, 0, 0));
-        jLabel8.setText("ROLE   :");
-        Game.add(jLabel8);
-        jLabel8.setBounds(58, 50, 67, 22);
-
-        ListPlayer.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
-        jScrollPane1.setViewportView(ListPlayer);
-
-        Game.add(jScrollPane1);
-        jScrollPane1.setBounds(58, 265, 452, 356);
-
-        jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel9.setForeground(new java.awt.Color(255, 0, 51));
-        jLabel9.setText("Player:");
-        Game.add(jLabel9);
-        jLabel9.setBounds(58, 237, 53, 22);
-
-        gameUserName.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        gameUserName.setText("USERNAME");
-        Game.add(gameUserName);
-        gameUserName.setBounds(300, 70, 137, 30);
-
-        role.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/profilecivilian.png"))); // NOI18N
-        Game.add(role);
-        role.setBounds(135, 11, 333, 172);
-
-        bg.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/day.png"))); // NOI18N
-        Game.add(bg);
-        bg.setBounds(0, 0, 980, 690);
-
-        Menu.add(Game, "game");
 
         Register.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -280,6 +248,153 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         Menu.add(Register, "register");
         Register.getAccessibleContext().setAccessibleName("");
 
+        Game.setBackground(new java.awt.Color(255, 255, 255));
+        Game.setLayout(null);
+
+        currentDay.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        currentDay.setForeground(new java.awt.Color(255, 0, 0));
+        currentDay.setText("1");
+        Game.add(currentDay);
+        currentDay.setBounds(740, 80, 40, 30);
+
+        jLabel15.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jLabel15.setForeground(new java.awt.Color(255, 0, 0));
+        jLabel15.setText("DAY : ");
+        Game.add(jLabel15);
+        jLabel15.setBounds(650, 70, 80, 50);
+
+        Vote1.setBackground(new java.awt.Color(153, 153, 255));
+        Vote1.setPreferredSize(new java.awt.Dimension(600, 600));
+
+        jLabel13.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        jLabel13.setText("VOTE NOW !");
+
+        jLabel14.setText("Username");
+
+        listPlayerAlive1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        voteButton1.setText("Vote!");
+        voteButton1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                voteButton1MouseClicked(evt);
+            }
+        });
+        voteButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                voteButton1ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout Vote1Layout = new javax.swing.GroupLayout(Vote1);
+        Vote1.setLayout(Vote1Layout);
+        Vote1Layout.setHorizontalGroup(
+            Vote1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Vote1Layout.createSequentialGroup()
+                .addGroup(Vote1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(Vote1Layout.createSequentialGroup()
+                        .addGap(28, 28, 28)
+                        .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 77, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(Vote1Layout.createSequentialGroup()
+                        .addGap(119, 119, 119)
+                        .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(Vote1Layout.createSequentialGroup()
+                        .addGap(156, 156, 156)
+                        .addComponent(voteButton1))
+                    .addGroup(Vote1Layout.createSequentialGroup()
+                        .addGap(123, 123, 123)
+                        .addComponent(listPlayerAlive1, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(76, Short.MAX_VALUE))
+        );
+        Vote1Layout.setVerticalGroup(
+            Vote1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(Vote1Layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(33, 33, 33)
+                .addGroup(Vote1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(listPlayerAlive1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(36, 36, 36)
+                .addComponent(voteButton1)
+                .addContainerGap(33, Short.MAX_VALUE))
+        );
+
+        Game.add(Vote1);
+        Vote1.setBounds(530, 340, 400, 200);
+
+        jLabel8.setBackground(new java.awt.Color(255, 255, 255));
+        jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel8.setForeground(new java.awt.Color(255, 0, 0));
+        jLabel8.setText("ROLE   :");
+        Game.add(jLabel8);
+        jLabel8.setBounds(58, 50, 67, 22);
+
+        Friend.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        Friend.setText("Friend");
+
+        friendName.setText("friend name");
+
+        javax.swing.GroupLayout friendPanelLayout = new javax.swing.GroupLayout(friendPanel);
+        friendPanel.setLayout(friendPanelLayout);
+        friendPanelLayout.setHorizontalGroup(
+            friendPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(friendPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(Friend)
+                .addGap(29, 29, 29)
+                .addComponent(friendName)
+                .addContainerGap(127, Short.MAX_VALUE))
+        );
+        friendPanelLayout.setVerticalGroup(
+            friendPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(friendPanelLayout.createSequentialGroup()
+                .addGap(19, 19, 19)
+                .addGroup(friendPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(Friend)
+                    .addComponent(friendName))
+                .addContainerGap(14, Short.MAX_VALUE))
+        );
+
+        Game.add(friendPanel);
+        friendPanel.setBounds(600, 270, 260, 50);
+
+        ListPlayer.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane1.setViewportView(ListPlayer);
+
+        Game.add(jScrollPane1);
+        jScrollPane1.setBounds(58, 265, 452, 356);
+
+        jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel9.setForeground(new java.awt.Color(255, 0, 51));
+        jLabel9.setText("Player:");
+        Game.add(jLabel9);
+        jLabel9.setBounds(58, 237, 53, 22);
+
+        gameUserName.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        gameUserName.setText("USERNAME");
+        Game.add(gameUserName);
+        gameUserName.setBounds(300, 70, 137, 30);
+
+        role.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/profilecivilian.png"))); // NOI18N
+        Game.add(role);
+        role.setBounds(135, 11, 333, 172);
+
+        bg.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/day.png"))); // NOI18N
+        Game.add(bg);
+        bg.setBounds(0, 0, 980, 690);
+
+        Menu.add(Game, "game");
+
         Join.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Image/joingame.png"))); // NOI18N
@@ -328,6 +443,35 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
         Menu.add(Join, "join");
         Join.getAccessibleContext().setAccessibleName("");
+
+        GameOver.setBackground(new java.awt.Color(255, 255, 255));
+        GameOver.setLayout(null);
+
+        jLabel12.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
+        jLabel12.setText("GAME OVER");
+        GameOver.add(jLabel12);
+        jLabel12.setBounds(370, 100, 193, 44);
+
+        WinnerRole.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
+        WinnerRole.setText("Role");
+        GameOver.add(WinnerRole);
+        WinnerRole.setBounds(420, 320, 46, 29);
+
+        Winner.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/profilecivilian.png"))); // NOI18N
+        GameOver.add(Winner);
+        Winner.setBounds(270, 220, 318, 187);
+
+        jButton1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jButton1.setText("Play Again!");
+        jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jButton1MouseClicked(evt);
+            }
+        });
+        GameOver.add(jButton1);
+        jButton1.setBounds(390, 590, 130, 40);
+
+        Menu.add(GameOver, "gameover");
 
         Waiting.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -412,6 +556,23 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         waiting();
     }//GEN-LAST:event_voteButtonActionPerformed
 
+    private void voteButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_voteButton1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_voteButton1ActionPerformed
+
+    private void voteButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_voteButton1MouseClicked
+        playerChoosen = listPlayerAlive1.getSelectedItem().toString();
+        int kpuId = client.getCurrentLeaderId();
+        client.killWerewolfVote(kpuId, playerChoosen);
+        hideVote();
+        waiting();
+    }//GEN-LAST:event_voteButton1MouseClicked
+
+    private void jButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseClicked
+        client.resetGame();
+        register();
+    }//GEN-LAST:event_jButton1MouseClicked
+
     
     /**
      * @param args the command line arguments
@@ -460,11 +621,16 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         changePanel("waiting");
     }
     public void game(){
+        hideVote();
         changePanel("game");
     }
     public void register(){
         changePanel("register");
     }
+    public void gameOver(){
+        changePanel("gameover");
+    }
+    
     public void changeDay(String phase){
         int temp=0;
         if(phase.equalsIgnoreCase("day")){
@@ -482,8 +648,30 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         role.setIcon(image);
     }
     
+    public void setWinner(String Role){
+        int temp=0;
+        if(Role.equalsIgnoreCase("werewolf")){
+            temp=1;
+        }else temp=0;
+        ImageIcon image = new ImageIcon(getClass().getResource(roleList[temp]));
+        Winner.setIcon(image);
+        WinnerRole.setText(Role);
+    }
+    
+    public void setFriend(String name){
+        friendName.setText(name);
+    }
+    
     public void setUsername(String username) {
         gameUserName.setText(username);
+    }
+    
+    public void setDay(int day){
+        currentDay.setText(""+day);
+    }
+    
+    public void hideFriend(){
+        friendPanel.setVisible(false);
     }
     
     public DefaultTableModel getTableModel() {
@@ -512,37 +700,56 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
          
     public void initComboPlayer(ArrayList<Player> players){
-        listPlayerAlive.removeAllItems();
+        listPlayerAlive1.removeAllItems();
         for(Player player: players){
             if(player.getAlive()==1)
-                listPlayerAlive.addItem(player.getUsername());
+                listPlayerAlive1.addItem(player.getUsername());
         }
     }
     
     public void voteNow(ArrayList<Player> players){
         initComboPlayer(players);
-        VoteNow.setSize(450,250);
-        VoteNow.setLocationRelativeTo(null);
-        VoteNow.setVisible(true);
+        Vote1.setVisible(true);
+        //VoteNow.setSize(450,250);
+        //VoteNow.setLocationRelativeTo(null);
+        //VoteNow.setVisible(true);
+    }
+    
+    public void hideVote(){
+        Vote1.setVisible(false);
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel Friend;
     private javax.swing.JPanel Game;
+    private javax.swing.JPanel GameOver;
     private javax.swing.JPanel Join;
     private javax.swing.JTable ListPlayer;
     private javax.swing.JPanel Menu;
     private javax.swing.JPanel Register;
+    private javax.swing.JPanel Vote;
+    private javax.swing.JPanel Vote1;
     private javax.swing.JDialog VoteNow;
     private javax.swing.JPanel Waiting;
+    private javax.swing.JLabel Winner;
+    private javax.swing.JLabel WinnerRole;
     private javax.swing.JLabel bg;
     private javax.swing.JButton connectButton;
+    private javax.swing.JLabel currentDay;
+    private javax.swing.JLabel friendName;
+    private javax.swing.JPanel friendPanel;
     private javax.swing.JLabel gameUserName;
     private javax.swing.JTextField inputClientPort;
     private javax.swing.JTextField inputServerAddress;
     private javax.swing.JTextField inputServerPort;
     private javax.swing.JTextField inputUser;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -551,12 +758,13 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
-    private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton joinButton;
     private javax.swing.JComboBox listPlayerAlive;
+    private javax.swing.JComboBox listPlayerAlive1;
     private javax.swing.JLabel role;
     private javax.swing.JButton voteButton;
+    private javax.swing.JButton voteButton1;
     // End of variables declaration//GEN-END:variables
 
     public static void main(String args[]) {

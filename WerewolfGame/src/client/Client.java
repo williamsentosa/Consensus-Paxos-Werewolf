@@ -11,11 +11,13 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
@@ -39,6 +41,7 @@ public class Client {
     private DataInputStream inputFromServer;
 
     private DatagramSocket clientSocket;
+    private String udpAddress;
     private int udpPort;
     private Thread clientThread;
     private static final int MAX_RETRY = 4;
@@ -62,10 +65,10 @@ public class Client {
         role = "";
     }
 
-    public Client(String ipAddr, int port, int myPort, int timeout) {
+    public Client(String ipAddr, int port, String myAddress, int myPort, int timeout) {
         scanner = new Scanner(System.in);
         role = "";
-        this.createServer(myPort, timeout);
+        this.createServer(myAddress, myPort, timeout);
         this.connect(ipAddr, port);
     }
 
@@ -89,7 +92,8 @@ public class Client {
         this.previousProposerId = previousProposerId;
     }
 
-    public void createServer(int port, int timeout) {
+    public void createServer(String address, int port, int timeout) {
+        this.udpAddress = address;
         this.udpPort = port;
         try {
             clientSocket = new DatagramSocket(this.udpPort);
@@ -97,9 +101,10 @@ public class Client {
 
             startClientThread();
 
-            System.out.println("Client listening on port " + this.udpPort);
+            System.out.println("Client listening on " + this.udpAddress + ":" + this.udpPort);
         } catch (SocketException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
         }
     }
 
@@ -113,6 +118,7 @@ public class Client {
             inputFromServer = new DataInputStream(socketToServer.getInputStream());
 
             System.out.println("Connected to " + serverIpAddress + " port " + serverPort + "...");
+            System.out.println();
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -130,7 +136,7 @@ public class Client {
     public void sendToClient(String msg, String ipAddr, int port) {
         System.out.println("sendToClient(): " + msg + " to " + ipAddr + ":" + port);
         try {
-            InetAddress ipAddress = InetAddress.getByName("localhost");
+            InetAddress ipAddress = InetAddress.getByName(this.udpAddress);
             byte[] outputToClient = new byte[UDP_BYTE_LENGTH];;
             outputToClient = msg.getBytes();
 
@@ -144,8 +150,9 @@ public class Client {
     }
 
     public void sendToClient(String msg, String ipAddr, int port, boolean isUnreliable) {
+        System.out.println("sendToClient(): " + msg + " to " + ipAddr + ":" + port);
         try {
-            InetAddress ipAddress = InetAddress.getByName("localhost");
+            InetAddress ipAddress = InetAddress.getByName(this.udpAddress);
             byte[] outputToClient = new byte[UDP_BYTE_LENGTH];;
             outputToClient = msg.getBytes();
 
@@ -272,7 +279,7 @@ public class Client {
         JSONObject request = new JSONObject();
         request.put("method", "join");
         request.put("username", username);
-        request.put("udp_address", socketToServer.getLocalAddress().getHostAddress());
+        request.put("udp_address", udpAddress);
         request.put("udp_port", udpPort);
         sendToServer(request.toString());
         try {
@@ -1018,16 +1025,59 @@ public class Client {
         this.votedWerewolves = votedWerewolves;
     }
     
+    public static List<String> getAvailableAddresses() {
+        List<String> availableAddresses = new ArrayList<String>();
+        try {
+            Enumeration<NetworkInterface> n;
+            n = NetworkInterface.getNetworkInterfaces();
+            for (; n.hasMoreElements();)
+            {
+                NetworkInterface e = n.nextElement();
+
+                Enumeration<InetAddress> a = e.getInetAddresses();
+                for (; a.hasMoreElements();)
+                {
+                    InetAddress addr = a.nextElement();
+                    if (addr.isSiteLocalAddress()) {
+                        availableAddresses.add(addr.getHostAddress());
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return availableAddresses;
+    }
+    
+    public static String grabAddress(List<String> availableAddresses, Scanner scanner) {
+        if (availableAddresses.isEmpty()) {
+            return "127.0.0.1";
+        } else if (availableAddresses.size() == 1) {
+            return availableAddresses.get(0);
+        } else {
+            //select address
+            System.out.println("Available Addresses: ");
+            availableAddresses.stream().forEach((addr) -> {
+                System.out.println("   " + addr);
+            });
+            System.out.print("Select address to use: ");
+            return scanner.nextLine();
+        }
+    }
+    
     public static void main(String args[]) {
         Scanner in = new Scanner(System.in);
         String serverIpAddress = "127.0.0.1";
         int serverPort = 8080;
-//        System.out.print("Input your port : ");
-//        int myPort = in.nextInt();
+        
+        String myAddress = grabAddress(getAvailableAddresses(), in);
         int myPort = (int)(Math.random() * 9999);
-        System.out.println("Your Port is " + myPort);
+        
+        System.out.println();
+        System.out.println("Expecting UDP activation on " + myAddress + ":" + myPort);
+        
         int timeout = 1 * 1000; // 5 seconds
-        Client client = new Client(serverIpAddress, serverPort, myPort, timeout);
+        Client client = new Client(serverIpAddress, serverPort, myAddress, myPort, timeout);
         client.run();
     }
 

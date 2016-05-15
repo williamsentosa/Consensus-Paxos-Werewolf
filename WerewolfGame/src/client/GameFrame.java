@@ -468,6 +468,11 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
                 jButton1MouseClicked(evt);
             }
         });
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
         GameOver.add(jButton1);
         jButton1.setBounds(390, 590, 130, 40);
 
@@ -557,21 +562,29 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     }//GEN-LAST:event_voteButtonActionPerformed
 
     private void voteButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_voteButton1ActionPerformed
-        // TODO add your handling code here:
+        playerChoosen = listPlayerAlive1.getSelectedItem().toString();
+        int kpuId = client.getCurrentLeaderId();
+        if(client.currentPhase.compareTo("day") == 0) {
+            client.killWerewolfVote(kpuId, playerChoosen);
+        } else if (client.currentPhase.compareTo("night") == 0) {
+            client.killCivilianVote(kpuId, playerChoosen);
+        }
+        hideVote();
+        waiting();
     }//GEN-LAST:event_voteButton1ActionPerformed
 
     private void voteButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_voteButton1MouseClicked
-        playerChoosen = listPlayerAlive1.getSelectedItem().toString();
-        int kpuId = client.getCurrentLeaderId();
-        client.killWerewolfVote(kpuId, playerChoosen);
-        hideVote();
-        waiting();
+        
     }//GEN-LAST:event_voteButton1MouseClicked
 
     private void jButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseClicked
+        
+    }//GEN-LAST:event_jButton1MouseClicked
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         client.resetGame();
         register();
-    }//GEN-LAST:event_jButton1MouseClicked
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     
     /**
@@ -628,6 +641,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         changePanel("register");
     }
     public void gameOver(){
+        System.out.println("Change Panel to gameover");
         changePanel("gameover");
     }
     
@@ -774,12 +788,8 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         //gameFrame.changeRole("werewolf");
         gameFrame.setLocationRelativeTo(null);
         gameFrame.setVisible(true);
-        Player player = new Player();
-        ArrayList<Player> players = new ArrayList<Player>();
-        players.add(player);
-        gameFrame.updateModel(players);
-        gameFrame.initPlayerTable(gameFrame.getTableModel());
-        gameFrame.voteNow(players);
+        gameFrame.setWinner("werewolf");
+        gameFrame.gameOver();
     }
 
     @Override

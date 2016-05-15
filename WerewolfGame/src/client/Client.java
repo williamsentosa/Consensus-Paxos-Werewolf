@@ -60,7 +60,9 @@ public class Client {
     private Observable observable;
     private GameFrame gameFrame;
     private String yourName;
-
+    public String currentPhase = "";
+    
+    
     public Client() {
         scanner = new Scanner(System.in);
         role = "";
@@ -435,9 +437,9 @@ public class Client {
 
     private void nightPhase() {
         gameFrame.game();
-        getListClient();
         gameFrame.changeDay("night");
         System.out.println("*** Entering night phase ***");
+        getListClient();
     }
 
     private void responseHandler(JSONObject response) {
@@ -458,6 +460,7 @@ public class Client {
                 case "vote_now":
                     gameFrame.game();
                     String phase = response.getString("phase");
+                    currentPhase = phase;
                     if (phase.equals("day")) {
                         System.out.println("*** Kill Werewolf ***");
                         showAvailablePlayer();
@@ -495,15 +498,18 @@ public class Client {
 
     private void showAvailablePlayer() {
         ArrayList<Player> alivePlayers = new ArrayList<>();
+        System.out.println("ShowAvailablePlayer() : " + players.size());
+        System.out.println("ShowAvailablePlayer() : ");
         for (Player p : players) {
-            if(p.getAlive()==1) {
-                alivePlayers.add(p);
-                System.out.println(p.getUsername());
-            } else if (p.getAlive()==0) {
-                System.out.println(p.getUsername()+" die, role: "+ p.getRole());
-            }
+            System.out.println(p);
+//            if(p.getAlive()==1) {
+//                alivePlayers.add(p);
+//                System.out.println(p.getUsername());
+//            } else if (p.getAlive()==0) {
+//                System.out.println(p.getUsername()+" die, role: "+ p.getRole());
+//            }
         }
-        gameFrame.voteNow(alivePlayers);
+        gameFrame.voteNow(players);
     }
 
     private void changePhase(JSONObject response) {
@@ -527,6 +533,7 @@ public class Client {
             System.out.println(response.getString("description"));
         }
         isGameOver = true;
+        gameFrame.setWinner(winner);
         gameFrame.gameOver();
         //resetGame();
     }
@@ -656,7 +663,7 @@ public class Client {
         return maxId;
     }
 
-    private void killCivilianVote(int kpuId, String username) {
+    public void killCivilianVote(int kpuId, String username) {
         Player client = findPlayer(kpuId, players);
         JSONObject request = new JSONObject();
         request.put("method", "vote_civilian");
@@ -696,7 +703,7 @@ public class Client {
                             String role = "";
                             if (jsonLineClient.has("role")) {
                                 role = jsonLineClient.getString("role");
-                                System.out.println(username + " die, role: " + role);
+//                                System.out.println(username + " die, role: " + role);
                             }
                             players.add(new Player(playerId, isAlive, address, port, username, role));
                         }
@@ -711,7 +718,7 @@ public class Client {
                         break;
                 } 
             } else {
-                responseHandler(response);
+                JSONObject response1 = new JSONObject(input);
                 input = inputFromServer.readUTF();
                 System.out.println("getListClient() : " + input);
                 response = new JSONObject(input);
@@ -744,6 +751,7 @@ public class Client {
                         System.out.println("Failed, " + response.getString("description") + ".");
                         break;
                 }
+                responseHandler(response1);
             }
         } catch (IOException ex) {
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);

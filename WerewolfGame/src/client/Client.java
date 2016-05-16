@@ -538,6 +538,11 @@ public class Client {
         }
         isGameOver = true;
         gameFrame.setWinner(winner);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
         gameFrame.gameOver();
         //resetGame();
     }
@@ -1144,6 +1149,14 @@ public class Client {
             });
             System.out.print("Select address to use: ");
             return scanner.nextLine();
+        }
+    }
+    
+    public static String grabAddress(List<String> availableAddresses) {
+        if (availableAddresses.isEmpty()) {
+            return "127.0.0.1";
+        } else {
+            return availableAddresses.get(0);
         }
     }
     

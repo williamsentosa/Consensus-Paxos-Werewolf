@@ -28,7 +28,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     private Observable observable = null;
     private GuiThread guiThread = null;
     private DefaultTableModel users = new DefaultTableModel(new Object[]{"ID Pemain", "Nama Pemain", "Status", "Role"},0);
-    private static String[] phaseList =  { 
+    private static String[] phaseList =  {
         "/image/day.png","/image/night.png"
     };
     private static String[] roleList= {
@@ -38,10 +38,10 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     /**
      * Creates new form Register
      */
-    public GameFrame() { 
+    public GameFrame() {
         initComponents();
     }
-    
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -166,7 +166,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
         Register.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Image/werewolf.png"))); // NOI18N
+        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/werewolf.png"))); // NOI18N
 
         inputClientPort.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -399,7 +399,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
         Join.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Image/joingame.png"))); // NOI18N
+        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/joingame.png"))); // NOI18N
 
         jLabel6.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel6.setText("Username");
@@ -482,7 +482,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 
         Waiting.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Image/waiting.png"))); // NOI18N
+        jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/image/waiting.png"))); // NOI18N
 
         javax.swing.GroupLayout WaitingLayout = new javax.swing.GroupLayout(Waiting);
         Waiting.setLayout(WaitingLayout);
@@ -531,7 +531,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         int serverPort = Integer.parseInt(inputServerPort.getText());
         int myPort = Integer.parseInt(inputClientPort.getText());
         int timeout = 1 * 1000; // 5 seconds
-        String myAddress = grabAddress(getAvailableAddresses(), in);
+        String myAddress = client.grabAddress(getAvailableAddresses());
         client = new Client(serverAddress, serverPort, myAddress, myPort, timeout);
         client.setGameFrame(this);
         observable = client.getObservable();
@@ -577,11 +577,11 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
     }//GEN-LAST:event_voteButton1ActionPerformed
 
     private void voteButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_voteButton1MouseClicked
-        
+
     }//GEN-LAST:event_voteButton1MouseClicked
 
     private void jButton1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseClicked
-        
+
     }//GEN-LAST:event_jButton1MouseClicked
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -589,7 +589,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         register();
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    
+
     /**
      * @param args the command line arguments
      */
@@ -597,7 +597,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
 //        /* Set the Nimbus look and feel */
 //        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
 //        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-//         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+//         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
 //         */
 //        try {
 //            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -647,7 +647,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         System.out.println("Change Panel to gameover");
         changePanel("gameover");
     }
-    
+
     public void changeDay(String phase){
         int temp=0;
         if(phase.equalsIgnoreCase("day")){
@@ -664,7 +664,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         ImageIcon image = new ImageIcon(getClass().getResource(roleList[temp]));
         role.setIcon(image);
     }
-    
+
     public void setWinner(String Role){
         int temp=0;
         if(Role.equalsIgnoreCase("werewolf")){
@@ -674,27 +674,27 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         Winner.setIcon(image);
         WinnerRole.setText(Role);
     }
-    
+
     public void setFriend(String name){
         friendName.setText(name);
     }
-    
+
     public void setUsername(String username) {
         gameUserName.setText(username);
     }
-    
+
     public void setDay(int day){
         currentDay.setText(""+day);
     }
-    
+
     public void hideFriend(){
         friendPanel.setVisible(false);
     }
-    
+
     public DefaultTableModel getTableModel() {
         return users;
     }
-    
+
     public void updateModel(ArrayList<Player> players) {
         users.setRowCount(0);
         for(Player player: players){
@@ -703,10 +703,10 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
             o[1]=player.getUsername();
             o[2]=player.getAlive();
             o[3]=player.getRole();
-            users.addRow(o); 
+            users.addRow(o);
         }
-    }    
-    
+    }
+
     public void initPlayerTable(DefaultTableModel model) {
         ListPlayer.setModel(model);
         ListPlayer.getColumnModel().getColumn(0).setPreferredWidth(100);
@@ -715,7 +715,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         ListPlayer.getColumnModel().getColumn(3).setPreferredWidth(150);
     }
 
-         
+
     public void initComboPlayer(ArrayList<Player> players){
         listPlayerAlive1.removeAllItems();
         for(Player player: players){
@@ -723,7 +723,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
                 listPlayerAlive1.addItem(player.getUsername());
         }
     }
-    
+
     public void voteNow(ArrayList<Player> players){
         initComboPlayer(players);
         Vote1.setVisible(true);
@@ -731,7 +731,7 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         //VoteNow.setLocationRelativeTo(null);
         //VoteNow.setVisible(true);
     }
-    
+
     public void hideVote(){
         Vote1.setVisible(false);
     }

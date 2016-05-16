@@ -5,6 +5,8 @@
  */
 package client;
 
+import static client.Client.getAvailableAddresses;
+import static client.Client.grabAddress;
 import static java.lang.Thread.sleep;
 import java.util.ArrayList;
 import java.util.Observable;
@@ -529,7 +531,8 @@ public class GameFrame extends javax.swing.JFrame implements Observer {
         int serverPort = Integer.parseInt(inputServerPort.getText());
         int myPort = Integer.parseInt(inputClientPort.getText());
         int timeout = 1 * 1000; // 5 seconds
-        client = new Client(serverAddress, serverPort, myPort, timeout);
+        String myAddress = grabAddress(getAvailableAddresses(), in);
+        client = new Client(serverAddress, serverPort, myAddress, myPort, timeout);
         client.setGameFrame(this);
         observable = client.getObservable();
         joinGame();
